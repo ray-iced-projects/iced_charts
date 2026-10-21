@@ -1,0 +1,118 @@
+[package]
+name = "iced_charts"
+version = "0.1.0"
+edition = "2024"
+authors = ["Charles Ray <ray.iced.projects@gmail.com>"]
+description = "A charting program using Iced."
+
+[features]
+default = ["canvas"]
+canvas = []
+
+[[example]]
+name = "line"
+path = "examples/line/src/main.rs"
+
+[[example]]
+name = "column_clustered"
+path = "examples/column_clustered/src/main.rs"
+
+[[example]]
+name = "column_stacked"
+path = "examples/column_stacked/src/main.rs"
+
+[[example]]
+name = "column_stacked_100"
+path = "examples/column_stacked_100/src/main.rs"
+
+[[example]]
+name = "bar_clustered"
+path = "examples/bar_clustered/src/main.rs"
+
+[[example]]
+name = "bar_stacked"
+path = "examples/bar_stacked/src/main.rs"
+
+[[example]]
+name = "bar_stacked_100"
+path = "examples/bar_stacked_100/src/main.rs"
+
+[[example]]
+name = "line_markers"
+path = "examples/line_markers/src/main.rs"
+
+[[example]]
+name = "line_stacked"
+path = "examples/line_stacked/src/main.rs"
+
+[[example]]
+name = "pie"
+path = "examples/pie/src/main.rs"
+
+[[example]]
+name = "doughnut"
+path = "examples/doughnut/src/main.rs"
+
+[[example]]
+name = "area"
+path = "examples/area/src/main.rs"
+
+[[example]]
+name = "area_stacked"
+path = "examples/area_stacked/src/main.rs"
+
+[[example]]
+name = "scatter"
+path = "examples/scatter/src/main.rs"
+
+[[example]]
+name = "scatter_lines"
+path = "examples/scatter_lines/src/main.rs"
+
+[[example]]
+name = "bubble"
+path = "examples/bubble/src/main.rs"
+
+[[example]]
+name = "radar"
+path = "examples/radar/src/main.rs"
+
+[[example]]
+name = "histogram"
+path = "examples/histogram/src/main.rs"
+
+[[example]]
+name = "waterfall"
+path = "examples/waterfall/src/main.rs"
+
+[[example]]
+name = "funnel"
+path = "examples/funnel/src/main.rs"
+
+[[example]]
+name = "treemap"
+path = "examples/treemap/src/main.rs"
+
+[[example]]
+name = "sunburst"
+path = "examples/sunburst/src/main.rs"
+
+[[example]]
+name = "box_whisker"
+path = "examples/box_whisker/src/main.rs"
+
+[[example]]
+name = "stock"
+path = "examples/stock/src/main.rs"
+
+[[example]]
+name = "combo"
+path = "examples/combo/src/main.rs"
+
+[dependencies]
+iced = { git = "https://github.com/iced-rs/iced.git", branch = "master", features=["debug", "advanced", "canvas", "tokio"] }
+serde = { version = "1.0", features = ["derive"] }
+thiserror = "1.0"
+sha2 = "0.10"
+regex = "1.10"
+serde_json = "1.0.154"
