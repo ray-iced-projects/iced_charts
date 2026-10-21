@@ -63,11 +63,19 @@ path = "examples/area_stacked/src/main.rs"
 
 [[example]]
 name = "scatter"
-path = "examples/scatter/src/main.rs"
+path = "examples/scatter_charts/scatter/src/main.rs"
 
 [[example]]
 name = "scatter_lines"
-path = "examples/scatter_lines/src/main.rs"
+path = "examples/scatter_charts/scatter_lines/src/main.rs"
+
+[[example]]
+name = "scatter_with_moving_average"
+path = "examples/scatter_charts/scatter_with_moving_average/src/main.rs"
+
+[[example]]
+name = "scatter_with_linear_trend"
+path = "examples/scatter_charts/scatter_with_linear_trend/src/main.rs"
 
 [[example]]
 name = "bubble"
