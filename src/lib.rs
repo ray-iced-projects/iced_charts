@@ -7,30 +7,22 @@ use iced::{
     Vector, Widget,
 };
 
-// Internal modules
-mod axis;
-// pub mod raster;
-mod render;
-mod resolve;
-mod sparkline;
-mod trend;
 
-// External module hierarchies
-pub mod calc;
+pub mod axis;
 pub mod core;
-pub mod formula;
-pub mod functions;
 pub mod model;
 pub mod numfmt;
+pub mod render;
+pub mod resolve;
+pub mod trend;
 
-// Re-export commonly used types and functions
-pub use model::{Chart, ChartKind, LegendPos, SparklineKind, Trendline, TrendlineKind};
+
+pub use model::features::{Chart, ChartKind, LegendPos, SparklineKind, Trendline, TrendlineKind};
 use serde::{Deserialize, Serialize};
 
 pub use axis::{Scale, format_number, nice_scale};
-pub use render::{Swatch, legend_entries, render, supports_trendline};
-pub use resolve::{default_palette, resolve, series_color, series_plot_kind};
-pub use sparkline::render_sparkline;
+pub use render::render;
+
 
 pub type Rgba = [u8; 4];
 

@@ -1,6 +1,9 @@
 use iced::widget::container;
 use iced::{Theme, Widget};
-use iced_charts::{State, Chart, ChartData, ChartKind, LegendPos, SeriesData, series_color, model::Theme as ChartTheme};
+use iced_charts::{State, Chart, ChartData, ChartKind, LegendPos, SeriesData};
+use iced_charts::resolve::series_color;
+use iced_charts::model::style::Theme as ChartTheme;
+
 
 pub fn main() -> iced::Result {
     iced::application(Example::default, Example::update, Example::view)
@@ -23,7 +26,6 @@ impl Default for Example {
             data_labels: false,
             style: 0,
             series: vec![],
-            anchor: Default::default(),
             x_title: Some("Department".to_string()),
             y_title: Some("Budget ($K)".to_string()),
             source: None,
