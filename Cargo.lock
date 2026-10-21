@@ -1129,6 +1129,7 @@ name = "iced_charts"
 version = "0.1.0"
 dependencies = [
  "iced",
+ "once_cell",
  "regex",
  "serde",
  "serde_json",
