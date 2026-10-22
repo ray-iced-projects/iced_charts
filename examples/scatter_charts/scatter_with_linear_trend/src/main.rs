@@ -1,6 +1,6 @@
 use iced::widget::{PickList, container, row};
 use iced::{Theme, Widget};
-use iced_charts::{State, Chart, ChartData, ChartKind, LegendPos, SeriesData, Trendline, TrendlineKind, TrendlineData};
+use iced_charts::{Chart, ChartData, ChartKind, LegendPos, SeriesData, State, Title, Trendline, TrendlineData, TrendlineKind};
 use iced_charts::resolve::series_color;
 use iced_charts::model::style::Theme as ChartTheme;
 use iced_charts::model::series_colors::{theme_strings, str_to_theme};
@@ -20,10 +20,17 @@ struct Example {
 
 impl Default for Example {
     fn default() -> Self {
+        let mut title = Title::default();
+        title.text.content = "Website Traffic with Moving Average Trend".into();
+        
+        let selected_theme = Theme::TokyoNight;
+        let bkg = selected_theme.palette().background;
+        title.text.color = bkg.base.text;
+        
         let chart = Chart {
             id: 1,
             kind: ChartKind::Scatter,
-            title: Some("Website Traffic with Moving Average Trend".into()),
+            title: Some(title),
             legend: LegendPos::Bottom,
             gridlines: true,
             data_labels: false,
@@ -33,7 +40,6 @@ impl Default for Example {
             y_title: Some("Visitors".to_string()),
             source: None,
             by_rows: false,
-            pivot: None,
         };
         let theme = ChartTheme::default();
 
@@ -107,6 +113,7 @@ impl Example {
     }
 
     fn view(&self) -> impl Widget<Message> {
+
         let pl = PickList::new(
                 Some(self.selected_theme_str.clone()),
                 theme_strings(), 

@@ -17,7 +17,7 @@ pub mod resolve;
 pub mod trend;
 
 
-pub use model::features::{Chart, ChartKind, LegendPos, SparklineKind, Trendline, TrendlineKind};
+pub use model::features::{Chart, ChartKind, LegendPos, SparklineKind, Trendline, TrendlineKind, Title};
 use serde::{Deserialize, Serialize};
 
 pub use axis::{Scale, format_number, nice_scale};
@@ -43,7 +43,7 @@ pub enum VAlign {
 }
 
 /// A drawing primitive in chart coordinates (origin top-left, y down, units = points/pixels).
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug)]
 pub enum Prim {
     Rect {
         x: f32,
@@ -95,6 +95,7 @@ pub enum Prim {
         valign: VAlign,
         rotation: f32,
     },
+    TitleText(Title),
 }
 
 /// Measures text width (the UI passes real font metrics; tests use a fixed-width approximation).
@@ -383,6 +384,14 @@ fn draw_prim(frame: &mut Frame, prim: &Prim) {
                     align_y: y_align,
                     ..canvas::Text::default()
                 });
+            });
+        }, Prim::TitleText(ti) => {
+            frame.with_save(|f| {
+                f.translate(Vector::new(ti.x, ti.y));
+                if ti.rotation != 0.0 {
+                    f.rotate(Radians(ti.rotation));
+                }
+                f.fill_text(ti.text.clone());
             });
         }
     }

@@ -1,4 +1,7 @@
-use iced::Color;
+
+use std::f32::consts::PI;
+
+use iced::{Color, widget::canvas};
 use serde::{Deserialize, Serialize};
 
 
@@ -6,11 +9,11 @@ use serde::{Deserialize, Serialize};
 
 
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug)]
 pub struct Chart {
     pub id: u32,
     pub kind: ChartKind,
-    pub title: Option<String>,
+    pub title: Option<Title>,
     pub series: Vec<Series>,
     pub legend: LegendPos,
     pub data_labels: bool,
@@ -21,10 +24,25 @@ pub struct Chart {
     /// Source range when created from a selection (for Switch Row/Column).
     pub source: Option<String>,
     pub by_rows: bool,
-    /// A PivotChart's PivotTable (`Sheet2!PivotTable1`): its series are rebuilt from the report
-    /// whenever the PivotTable is refreshed or its layout changes.
-    #[serde(default)]
-    pub pivot: Option<String>,
+}
+
+#[derive(Clone, Debug)]
+pub struct Title {
+    pub x: f32,
+    pub y: f32,
+    pub rotation: f32,
+    pub text: canvas::Text,
+}
+
+impl Title {
+    pub fn default() -> Self {
+        Self {
+            x: 0.0,
+            y: 0.0,
+            rotation: -PI / 2.0,
+            text: canvas::Text::default(),
+        }
+    }
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash, Serialize, Deserialize)]

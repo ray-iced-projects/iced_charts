@@ -215,7 +215,7 @@ fn sanitize(d: &ChartData) -> ChartData {
 
 fn chart_title(chart: &Chart, data: &ChartData) -> Option<String> {
     match &chart.title {
-        Some(t) => Some(t.trim().to_string()).filter(|t| !t.is_empty()),
+        Some(t) => Some(t.text.content.clone()).filter(|t| !t.is_empty()),
         None if data.series.len() == 1 => data.series.first().map(|s| s.name.clone()).filter(|t| !t.is_empty()),
         None => None,
     }
@@ -1740,6 +1740,7 @@ pub(crate) fn finalize(prims: Vec<Prim>, w: f32, h: f32) -> Vec<Prim> {
                 }
                 Some(Prim::Text { x: cx(x), y: cy(y), text, size: size.clamp(1.0, 200.0), color, bold, align, valign, rotation })
             }
+            Prim::TitleText(ti) => Some(Prim::TitleText(ti))
         })
         .collect()
 }
