@@ -1,49 +1,62 @@
-
+#![allow(unused)]
 use once_cell::sync::Lazy;
-use iced::{color, Color};
+use iced::{Color, Theme::{self, TokyoNight}, color};
 
 
-pub fn get_series_color_by_theme_index(theme_type: &iced::Theme, index: usize) -> Color {
-    match theme_type {
-        iced::Theme::CatppuccinFrappe       => CATPPUCCIN_FRAPPE[index % CATPPUCCIN_FRAPPE.len()],
-        iced::Theme::CatppuccinLatte        => CATPPUCCIN_LATTE[index % CATPPUCCIN_LATTE.len()],
-        iced::Theme::CatppuccinMacchiato    => CATPPUCCIN_MACCHIATO[index % CATPPUCCIN_MACCHIATO.len()],
-        iced::Theme::CatppuccinMocha        => CATPPUCCIN_MOCHA[index % CATPPUCCIN_MOCHA.len()],
-        iced::Theme::Dark                   => DARK[index % DARK.len()],
-        iced::Theme::Dracula                => DRACULA[index % DRACULA.len()],
-        iced::Theme::Ferra                  => FERRA[index % FERRA.len()],
-        iced::Theme::GruvboxDark            => GRUVBOX_DARK[index % GRUVBOX_DARK.len()],
-        iced::Theme::GruvboxLight           => GRUVBOX_LIGHT[index % GRUVBOX_LIGHT.len()],
-        iced::Theme::KanagawaDragon         => KANAGAWA_DRAGON[index % KANAGAWA_DRAGON.len()],
-        iced::Theme::KanagawaLotus          => KANAGAWA_LOTUS[index % KANAGAWA_LOTUS.len()],
-        iced::Theme::KanagawaWave           => KANAGAWA_WAVE[index % KANAGAWA_WAVE.len()],
-        iced::Theme::Light                  => LIGHT[index % LIGHT.len()],
-        iced::Theme::Nightfly               => NIGHTFLY[index % NIGHTFLY.len()],
-        iced::Theme::Moonfly                => MOONFLY[index % MOONFLY.len()],
-        iced::Theme::Nord                   => NORD[index % NORD.len()],
-        iced::Theme::Oxocarbon              => OXOCARBON[index % OXOCARBON.len()],
-        iced::Theme::SolarizedDark          => SOLARIZED_DARK[index % SOLARIZED_DARK.len()],
-        iced::Theme::SolarizedLight         => SOLARIZED_LIGHT[index % SOLARIZED_LIGHT.len()],
-        iced::Theme::TokyoNight             => TOKYO_NIGHT[index % TOKYO_NIGHT.len()],
-        iced::Theme::TokyoNightLight        => TOKYO_NIGHT_LIGHT[index % TOKYO_NIGHT_LIGHT.len()],
-        iced::Theme::TokyoNightStorm        => TOKYO_NIGHT_STORM[index % TOKYO_NIGHT_STORM.len()],
-        iced::Theme::Custom(_)              => {
-            // TODO add a user series colors in the json file if custom theme used.
-            // The below are temp colors for now.
-            let colors = [
-                Color::from_rgb(0.2, 0.4, 0.8),  // Blue
-                Color::from_rgb(0.8, 0.2, 0.2),  // Red
-                Color::from_rgb(0.2, 0.8, 0.2),  // Green
-                Color::from_rgb(0.4, 0.7, 0.9),  // Light blue
-                Color::from_rgb(0.9, 0.7, 0.4),  // Orange
-                Color::from_rgb(0.7, 0.4, 0.9),  // Purple
-                Color::from_rgb(0.4, 0.9, 0.7),  // Cyan
-                Color::from_rgb(0.9, 0.4, 0.7),  // Magenta
-            ];
-            colors[index % colors.len()]
-        },
+pub fn theme_strings() -> Vec<String> {
+    vec![
+        "Light".to_string(),
+        "Dark".to_string(),
+        "CatppuccinFrappe".to_string(),
+        "CatppuccinLatte".to_string(),
+        "CatppuccinMacchiato".to_string(),
+        "CatppuccinMocha".to_string(),
+        "Dracula".to_string(),
+        "Ferra".to_string(),
+        "GruvboxDark".to_string(),
+        "GruvboxLight".to_string(),
+        "KanagawaDragon".to_string(),
+        "KanagawaLotus".to_string(),
+        "KanagawaWave".to_string(),
+        "Moonfly".to_string(),
+        "Nightfly".to_string(),
+        "Nord".to_string(),
+        "Oxocarbon".to_string(),
+        "SolarizedDark".to_string(),
+        "SolarizedLight".to_string(),
+        "TokyoNight".to_string(),
+        "TokyoNightLight".to_string(),
+        "TokyoNightStorm".to_string(),
+    ]
+}
+
+/// Converts a combo box selection string back into a `Theme` variant.
+pub fn str_to_theme(s: &str) -> Theme {
+    match s {
+        "Light" => Theme::Light,
+        "Dark" => Theme::Dark,
+        "CatppuccinFrappe" => Theme::CatppuccinFrappe,
+        "CatppuccinLatte" => Theme::CatppuccinLatte,
+        "CatppuccinMacchiato" => Theme::CatppuccinMacchiato,
+        "CatppuccinMocha" => Theme::CatppuccinMocha,
+        "Dracula" => Theme::Dracula,
+        "Ferra" => Theme::Ferra,
+        "GruvboxDark" => Theme::GruvboxDark,
+        "GruvboxLight" => Theme::GruvboxLight,
+        "KanagawaDragon" => Theme::KanagawaDragon,
+        "KanagawaLotus" => Theme::KanagawaLotus,
+        "KanagawaWave" => Theme::KanagawaWave,
+        "Moonfly" => Theme::Moonfly,
+        "Nightfly" => Theme::Nightfly,
+        "Nord" => Theme::Nord,
+        "Oxocarbon" => Theme::Oxocarbon,
+        "SolarizedDark" => Theme::SolarizedDark,
+        "SolarizedLight" => Theme::SolarizedLight,
+        "TokyoNight" => Theme::TokyoNight,
+        "TokyoNightLight" => Theme::TokyoNightLight,
+        "TokyoNightStorm" => Theme::TokyoNightStorm,
+        _ => TokyoNight,
     }
-
 }
 
 // I was trying to get a significant color difference so that closely
