@@ -1,49 +1,132 @@
 
 use std::f32::consts::PI;
 
-use iced::{Color, widget::canvas};
+use iced::{Color, Font, Pixels, Point, alignment, widget::{canvas, text::{Ellipsis, LineHeight, Shaping, Wrapping}}};
+use iced::advanced::text::Alignment;
 use serde::{Deserialize, Serialize};
 
 
+const TITLE_SIZE: f32 = 14.0;
+const LABEL_SIZE: f32 = 9.0;
+const AXIS_TITLE_SIZE: f32 = 10.0;
 
-
-
-
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct Chart {
-    pub id: u32,
+    pub id: usize,
     pub kind: ChartKind,
-    pub title: Option<Title>,
+    pub title: Option<ChartText>,
     pub series: Vec<Series>,
     pub legend: LegendPos,
     pub data_labels: bool,
     pub gridlines: bool,
     pub style: u32,
-    pub x_title: Option<String>,
-    pub y_title: Option<String>,
-    /// Source range when created from a selection (for Switch Row/Column).
+    pub x_title: Option<ChartText>,
+    pub y_title: Option<ChartText>,
     pub source: Option<String>,
     pub by_rows: bool,
 }
 
-#[derive(Clone, Debug)]
-pub struct Title {
-    pub x: f32,
-    pub y: f32,
-    pub rotation: f32,
-    pub text: canvas::Text,
+impl Chart {
+    pub fn default(&self) -> Self {
+        Self {
+            id: 0,
+            kind: ChartKind::Line,
+            title: None,
+            legend: LegendPos::Bottom,
+            gridlines: true,
+            data_labels: false,
+            style: 0,
+            series: vec![],
+            x_title: None,
+            y_title: None,
+            source: None,
+            by_rows: false,
+        }
+    }
+    pub fn new(
+        id: usize, 
+        kind: ChartKind,
+    ) -> Self {
+            Self {
+                id,
+                kind,
+                ..Default::default()
+            }
+    }
+
+    pub fn title(mut self, title: Title) -> Self {
+        self.title = Some(title);
+        self
+    }
+
+    pub fn x_title(mut self, title: Title) -> Self {
+        self.x_title = Some(title);
+        self
+    }
+
+    pub fn y_title(mut self, title: Title) -> Self {
+        self.x_title = Some(title);
+        self
+    }
 }
 
-impl Title {
-    pub fn default() -> Self {
-        Self {
-            x: 0.0,
-            y: 0.0,
-            rotation: -PI / 2.0,
-            text: canvas::Text::default(),
+#[derive(Debug, Clone)]
+pub struct ChartText {
+    pub content: String,
+    pub position: Point,
+    pub max_width: f32,
+    pub color: Color,
+    pub size: Pixels,
+    pub line_height: LineHeight,
+    pub font: Font,
+    pub align_x: Alignment,
+    pub align_y: alignment::Vertical,
+    pub shaping: Shaping,
+    pub wrapping: Wrapping,
+    pub ellipsis: Ellipsis,
+}
+
+impl ChartText {
+    fn new(title: bool, axis: bool) -> ChartText {
+        let size = match (title, axis) {
+            (true, false) => TITLE_SIZE,
+            (false, true) => AXIS_TITLE_SIZE,
+            _ => LABEL_SIZE
+        };
+        ChartText {
+            content: String::new(),
+            position: Point::ORIGIN,
+            max_width: f32::INFINITY,
+            color: Color::BLACK,
+            size: Pixels(size),
+            line_height: LineHeight::Relative(1.2),
+            font: Font::default(),
+            align_x: Alignment::Default,
+            align_y: alignment::Vertical::Top,
+            shaping: Shaping::default(),
+            wrapping: Wrapping::default(),
+            ellipsis: Ellipsis::default(),
+        }
+    }
+
+    pub fn to_iced(self) -> canvas::Text {
+        canvas::Text { 
+            content: self.content, 
+            position: self.position, 
+            max_width: self.max_width, 
+            color: self.color, 
+            size: self.size, 
+            line_height: self.line_height, 
+            font: self.font, 
+            align_x: self.align_x, 
+            align_y: self.align_y, 
+            shaping: self.shaping, 
+            wrapping: self.wrapping, 
+            ellipsis: self.ellipsis 
         }
     }
 }
+
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum ChartKind {

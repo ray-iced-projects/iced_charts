@@ -96,6 +96,8 @@ pub enum Prim {
         rotation: f32,
     },
     TitleText(Title),
+    YText(Title),
+    XText(Title),
 }
 
 /// Measures text width (the UI passes real font metrics; tests use a fixed-width approximation).
@@ -168,7 +170,6 @@ impl Default for SeriesData {
         }
     }
 }
-
 
 pub struct State {
     cache: canvas::Cache,
@@ -359,7 +360,7 @@ fn draw_prim(frame: &mut Frame, prim: &Prim) {
                     Stroke::default().with_color(rgba_to_color(*rgba)).with_width(*lw),
                 );
             }
-        }
+        },
         Prim::Text { x, y, text, size, color, bold: _, align, valign, rotation } => {
             let y_align = match valign {
                 VAlign::Top => alignment::Vertical::Top,
@@ -385,7 +386,26 @@ fn draw_prim(frame: &mut Frame, prim: &Prim) {
                     ..canvas::Text::default()
                 });
             });
-        }, Prim::TitleText(ti) => {
+        }, 
+        Prim::TitleText(ti) => {
+            frame.with_save(|f| {
+                f.translate(Vector::new(ti.x, ti.y));
+                if ti.rotation != 0.0 {
+                    f.rotate(Radians(ti.rotation));
+                }
+                f.fill_text(ti.text.clone());
+            });
+        },
+        Prim::XText(ti) => {
+            frame.with_save(|f| {
+                f.translate(Vector::new(ti.x, ti.y));
+                if ti.rotation != 0.0 {
+                    f.rotate(Radians(ti.rotation));
+                }
+                f.fill_text(ti.text.clone());
+            });
+        },
+        Prim::YText(ti) => {
             frame.with_save(|f| {
                 f.translate(Vector::new(ti.x, ti.y));
                 if ti.rotation != 0.0 {

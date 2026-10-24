@@ -275,14 +275,17 @@ fn draw_kind(ctx: &mut Ctx, chart: &Chart, data: &ChartData, area: Bx) {
     }
 }
 
-fn axis_titles(ctx: &mut Ctx, chart: &Chart, mut area: Bx) -> Bx {
+// Only used in Radar
+fn axis_titles(ctx: &mut Ctx, _chart: &Chart, mut area: Bx) -> Bx {
     let lh = AXIS_TITLE_SIZE * 1.4 + 2.0;
-    if let Some(t) = chart.x_title.as_deref().map(str::trim).filter(|t| !t.is_empty()) {
+    let x_title = Some("Days");
+    if let Some(t) = x_title.map(str::trim).filter(|t| !t.is_empty()) {
         let t = ctx.fit(t, AXIS_TITLE_SIZE, area.w);
         ctx.text(area.cx(), area.bottom(), &t, AXIS_TITLE_SIZE, TEXT, HAlign::Center, VAlign::Bottom);
         area.h -= lh;
     }
-    if let Some(t) = chart.y_title.as_deref().map(str::trim).filter(|t| !t.is_empty()) {
+    let y_title = Some("Num People");
+    if let Some(t) = y_title.as_deref().map(str::trim).filter(|t| !t.is_empty()) {
         let t = ctx.fit(t, AXIS_TITLE_SIZE, area.h);
         if !t.is_empty() {
             ctx.out.push(Prim::Text {
@@ -303,8 +306,7 @@ fn axis_titles(ctx: &mut Ctx, chart: &Chart, mut area: Bx) -> Bx {
     area
 }
 
-// ---------------------------------------------------------------- legend
-
+// legend
 fn swatch_w(sw: Swatch, s: f32) -> f32 {
     if sw == Swatch::Box { s } else { s * 2.0 }
 }
@@ -1696,21 +1698,21 @@ pub(crate) fn finalize(prims: Vec<Prim>, w: f32, h: f32) -> Vec<Prim> {
                 }
                 let radius = if fin(radius) { radius.clamp(0.0, (x1 - x0).min(y1 - y0) / 2.0) } else { 0.0 };
                 Some(Prim::Rect { x: x0, y: y0, w: x1 - x0, h: y1 - y0, fill, stroke: clamp_stroke(stroke), radius })
-            }
+            },
             Prim::Line { pts, color, width, dash } => {
                 if !pts_ok(&pts) || pts.len() < 2 || !fin(width) {
                     return None;
                 }
                 let pts = pts.into_iter().map(|p| [cx(p[0]), cy(p[1])]).collect();
                 Some(Prim::Line { pts, color, width: width.clamp(0.1, 50.0), dash })
-            }
+            },
             Prim::Polygon { pts, fill, stroke } => {
                 if !pts_ok(&pts) || pts.len() < 3 {
                     return None;
                 }
                 let pts = pts.into_iter().map(|p| [cx(p[0]), cy(p[1])]).collect();
                 Some(Prim::Polygon { pts, fill, stroke: clamp_stroke(stroke) })
-            }
+            },
             Prim::Wedge { cx: x, cy: y, r_outer, r_inner, a0, a1, fill, stroke } => {
                 if ![x, y, r_outer, r_inner, a0, a1].iter().all(|v| fin(*v)) {
                     return None;
@@ -1722,7 +1724,7 @@ pub(crate) fn finalize(prims: Vec<Prim>, w: f32, h: f32) -> Vec<Prim> {
                     return None;
                 }
                 Some(Prim::Wedge { cx: x, cy: y, r_outer: ro, r_inner: r_inner.clamp(0.0, ro), a0, a1, fill, stroke: clamp_stroke(stroke) })
-            }
+            },
             Prim::Circle { cx: x, cy: y, r, fill, stroke } => {
                 if !(fin(x) && fin(y) && fin(r)) {
                     return None;
@@ -1733,14 +1735,16 @@ pub(crate) fn finalize(prims: Vec<Prim>, w: f32, h: f32) -> Vec<Prim> {
                     return None;
                 }
                 Some(Prim::Circle { cx: x, cy: y, r, fill, stroke: clamp_stroke(stroke) })
-            }
+            },
             Prim::Text { x, y, text, size, color, bold, align, valign, rotation } => {
                 if !(fin(x) && fin(y) && fin(size) && fin(rotation)) || text.is_empty() {
                     return None;
                 }
                 Some(Prim::Text { x: cx(x), y: cy(y), text, size: size.clamp(1.0, 200.0), color, bold, align, valign, rotation })
-            }
-            Prim::TitleText(ti) => Some(Prim::TitleText(ti))
+            },
+            Prim::TitleText(ti) => Some(Prim::TitleText(ti)),
+            Prim::XText(ti) => Some(Prim::XText(ti)),
+            Prim::YText(ti) => Some(Prim::YText(ti)),
         })
         .collect()
 }

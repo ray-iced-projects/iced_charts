@@ -20,27 +20,32 @@ struct Example {
 
 impl Default for Example {
     fn default() -> Self {
+
         let mut title = Title::default();
         title.text.content = "Website Traffic with Moving Average Trend".into();
+
+        let mut x_title = Title::default();
+        title.text.content = "Days".into();
+
+        let mut y_title = Title::default();
+        title.text.content = "Visitors".into();
+        
         
         let selected_theme = Theme::TokyoNight;
         let bkg = selected_theme.palette().background;
-        title.text.color = bkg.base.text;
+        title.text.color = bkg.strongest.text;
+        x_title.text.color = bkg.strong.text;
+        y_title.text.color = bkg.strong.text;
         
-        let chart = Chart {
-            id: 1,
-            kind: ChartKind::Scatter,
-            title: Some(title),
-            legend: LegendPos::Bottom,
-            gridlines: true,
-            data_labels: false,
-            style: 0,
-            series: vec![],
-            x_title: Some("Days".to_string()),
-            y_title: Some("Visitors".to_string()),
-            source: None,
-            by_rows: false,
-        };
+        let chart = 
+            Chart::new(
+                1,
+                ChartKind::Scatter,
+            )
+            .title(title)
+            .x_title(x_title)
+            .y_title(y_title);
+
         let theme = ChartTheme::default();
 
         let data = ChartData {
