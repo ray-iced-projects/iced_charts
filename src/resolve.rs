@@ -22,7 +22,7 @@ pub fn series_color(theme: &ChartTheme, i: usize) -> iced::Color {
     let rgb = [(base >> 16) as u8, (base >> 8) as u8, base as u8];
     let tint = CYCLE_TINTS.get(cycle).copied().unwrap_or(0.0);
     let [r, g, b] = apply_tint(rgb, tint);
-    iced::Color::from_rgba(r as f32, g as f32, b as f32, 1.0)
+    iced::Color::from_rgba(r as f32 / 255.0, g as f32 / 255.0, b as f32 / 255.0, 1.0)
 }
 
 /// The first `n` series colours for `theme`.

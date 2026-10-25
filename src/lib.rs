@@ -452,3 +452,50 @@ fn draw_prim(frame: &mut Frame, prim: &Prim, theme: &Theme) {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_serde_color_conversion() {
+        use serde_json::json;
+
+        let json_data = json!({
+            "categories": ["A", "B"],
+            "series": [],
+            "palette": [
+                [255, 0, 0, 255],     // Red
+                [0, 255, 0, 255],     // Green
+                [0, 0, 255, 255],     // Blue
+            ]
+        });
+
+        let result: Result<ChartData, _> = serde_json::from_value(json_data);
+        match result {
+            Ok(chart_data) => {
+                assert_eq!(chart_data.palette.len(), 3);
+                assert_eq!(chart_data.palette[0].r, 1.0);
+                assert_eq!(chart_data.palette[0].g, 0.0);
+                assert_eq!(chart_data.palette[0].b, 0.0);
+            }
+            Err(e) => panic!("Deserialization failed: {}", e),
+        }
+    }
+
+    #[test]
+    fn test_color_values_in_range() {
+        // Test that series_color produces valid iced::Color values
+        use crate::model::style::ChartTheme;
+        
+        let theme = ChartTheme::default();
+        for i in 0..12 {
+            let color = crate::resolve::series_color(&theme, i);
+            assert!(color.r >= 0.0 && color.r <= 1.0, "Red component out of range: {}", color.r);
+            assert!(color.g >= 0.0 && color.g <= 1.0, "Green component out of range: {}", color.g);
+            assert!(color.b >= 0.0 && color.b <= 1.0, "Blue component out of range: {}", color.b);
+            assert!(color.a >= 0.0 && color.a <= 1.0, "Alpha component out of range: {}", color.a);
+        }
+    }
+}
+

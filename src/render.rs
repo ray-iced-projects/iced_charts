@@ -115,7 +115,7 @@ impl Ctx<'_> {
 /// Text colour readable on `fill`.
 fn on(fill: iced::Color) -> iced::Color {
     let l = 0.299 * fill.r + 0.587 * fill.g + 0.114 * fill.b;
-    if l < 150.0 { WHITE } else { DARK_TEXT }
+    if l < 0.5 { WHITE } else { DARK_TEXT }
 }
 
 /// How a legend entry's swatch is drawn.
