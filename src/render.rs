@@ -1,9 +1,7 @@
 //! Chart layout: title, legend, axes and every chart kind, drawn into [`Prim`]s.
 
 use std::collections::HashSet;
-use std::f32::consts::{PI, TAU};
-
-use iced::Color;
+use std::f32::consts::TAU;
 
 use crate::model::features::{Chart, ChartKind, ChartText, LegendPos, LineDash, TrendlineKind};
 use crate::model::style::Theme;
@@ -85,14 +83,12 @@ impl Ctx<'_> {
         }
         String::new()
     }
-    #[allow(clippy::too_many_arguments)]
+
     fn text(&mut self, x: f32, y: f32, ct: ChartText) {
         let mut ct = ct.clone();
-        ct.position.x = x;
-        ct.position.y = y;
-        ct.rotation = 0.0;
+        ct.x = x;
+        ct.y = y;
         if ct.title {
-            dbg!(x, y);
             self.out.push(Prim::TitleText(ct));
         } else if ct.x_axis {
             self.out.push(Prim::XText(ct));
@@ -244,11 +240,12 @@ pub fn render(chart: &Chart, data: &ChartData, w: f32, h: f32, m: &dyn Measure) 
     ctx.out.push(Prim::Rect { x: 0.0, y: 0.0, w, h, fill: Some(TRANSPARENT), stroke: Some((GRID, 1.0)), radius: 0.0 });
     let pad = (w.min(h) * 0.04).clamp(2.0, 10.0);
     let mut area = Bx { x: pad, y: pad, w: w - 2.0 * pad, h: h - 2.0 * pad };
-    dbg!(&area);
+    
     if let Some(ct) = chart.title.as_ref() {
-        let size = ct.size.0.min(h * 0.12).max(4.0);
-        let _t = ctx.fit(&ct.content, size, area.w);
-        ctx.text(w / 2.0, area.y, ct.clone());
+        let size = ct.size.min(h * 0.12).max(4.0);
+        let content_width = m.text_width(&ct.content, size, false);
+        
+        ctx.text((area.w - content_width) / 2.0, area.y, ct.clone());
         let used = size * 1.3 + 4.0;
         area.y += used;
         area.h -= used;
@@ -273,9 +270,9 @@ fn draw_kind(ctx: &mut Ctx, chart: &Chart, data: &ChartData, area: Bx) {
         ChartKind::Radar => radar(ctx, chart, data, area),
         _ => {
             let area = axis_titles(ctx, chart, area);
-            if !area.ok() {
-                return;
-            }
+            // if !area.ok() {
+            //     return;
+            // }
             match chart.kind {
                 ChartKind::BarClustered | ChartKind::BarStacked | ChartKind::BarStacked100 => cartesian(ctx, chart, data, area, true),
                 ChartKind::Scatter | ChartKind::ScatterLines | ChartKind::Bubble => scatter(ctx, chart, data, area),
@@ -289,34 +286,26 @@ fn draw_kind(ctx: &mut Ctx, chart: &Chart, data: &ChartData, area: Bx) {
     }
 }
 
-// Only used in Radar
 fn axis_titles(ctx: &mut Ctx, chart: &Chart, mut area: Bx) -> Bx {
-    let lh = AXIS_TITLE_SIZE * 1.4 + 2.0;
-    let x_title = Some("Days");
-    if let Some(t) = x_title.map(str::trim).filter(|t| !t.is_empty()) {
-        let t = ctx.fit(t, AXIS_TITLE_SIZE, area.w);
-        // ctx.text(area.cx(), area.bottom(), ct);
+    
+    if let Some(ct) = &chart.x_title {
+        let lh = ct.size * 1.4 + 2.0;
+        let mut ct = ct.clone();
+        ct.x = area.x + (area.w / 2.0);
+        ct.y = area.y + area.h - lh;
+        ctx.out.push(Prim::XText(ct));
         area.h -= lh;
-    }
-    let y_title = Some("Num People");
-    if let Some(t) = y_title.as_deref().map(str::trim).filter(|t| !t.is_empty()) {
-        let t = ctx.fit(t, AXIS_TITLE_SIZE, area.h);
-        if !t.is_empty() {
-            ctx.out.push(Prim::Text {
-                x: area.x,
-                y: area.cy(),
-                text: t,
-                size: AXIS_TITLE_SIZE,
-                color: TEXT,
-                bold: false,
-                align: HAlign::Center,
-                valign: VAlign::Top,
-                rotation: -PI / 2.0,
-            });
-        }
+    };
+
+    if let Some(ct) = &chart.y_title {
+        let lh = ct.size * 1.4 + 2.0;
+        let mut ct = ct.clone();
+        ct.x = area.x + ct.line_height * ct.size;
+        ct.y = area.y + (area.h / 2.0) - lh;
+        ctx.out.push(Prim::YText(ct.clone()));
         area.x += lh;
-        area.w -= lh;
-    }
+    };
+
     area
 }
 
@@ -375,7 +364,7 @@ fn draw_legend(ctx: &mut Ctx, entries: &[(String, Rgba, Swatch)], pos: LegendPos
                     if let Some(e) = entries.get(i) {
                         draw_swatch(ctx, e.2, x, yc, s, e.1);
                         let sx = swatch_w(e.2, s) + gap;
-                        let t = ctx.fit(&e.0, size, (iw - sx).max(0.0) + 0.5);
+                        let _t = ctx.fit(&e.0, size, (iw - sx).max(0.0) + 0.5);
                         // ctx.text(x + sx, yc, &ct);
                     }
                     x += iw + spacing;
@@ -395,7 +384,7 @@ fn draw_legend(ctx: &mut Ctx, entries: &[(String, Rgba, Swatch)], pos: LegendPos
                 let yc = y0 + i as f32 * row_h + row_h / 2.0;
                 draw_swatch(ctx, e.2, x0, yc, s, e.1);
                 let sx = swatch_w(e.2, s) + gap;
-                let t = ctx.fit(&e.0, size, (colw - sx).max(0.0) + 0.5);
+                let _t = ctx.fit(&e.0, size, (colw - sx).max(0.0) + 0.5);
                 // ctx.text(x0 + sx, yc, &t, size, TEXT, HAlign::Left, VAlign::Middle);
             }
             let used = colw + 8.0;
@@ -440,7 +429,7 @@ fn frame(ctx: &mut Ctx, area: Bx, cat: CatAxis, y: &ValAxis, y2: Option<&ValAxis
         if !plot.ok() {
             return plot;
         }
-        for (v, t) in &ylabels {
+        for (v, _t) in &ylabels {
             let yy = plot.bottom() - y.scale.frac(*v) * plot.h;
             if grid {
                 ctx.hline(plot.x, plot.right(), yy, GRID, 0.75);
@@ -448,8 +437,8 @@ fn frame(ctx: &mut Ctx, area: Bx, cat: CatAxis, y: &ValAxis, y2: Option<&ValAxis
             // ctx.text(plot.x - 4.0, yy, t, ls, TEXT, HAlign::Right, VAlign::Middle);
         }
         if let (Some(a), Some(l)) = (y2, &y2labels) {
-            for (v, t) in l {
-                let yy = plot.bottom() - a.scale.frac(*v) * plot.h;
+            for (v, _t) in l {
+                let _yy = plot.bottom() - a.scale.frac(*v) * plot.h;
                 // ctx.text(plot.right() + 4.0, yy, t, ls, TEXT, HAlign::Left, VAlign::Middle);
             }
         }
@@ -462,8 +451,8 @@ fn frame(ctx: &mut Ctx, area: Bx, cat: CatAxis, y: &ValAxis, y2: Option<&ValAxis
                 let cw = plot.w / n as f32;
                 let lw = l.iter().take(2000).map(|t| ctx.tw(t, ls)).fold(0.0f32, f32::max);
                 let k = (((lw + 6.0) / cw.max(1e-3)).ceil() as usize).clamp(1, n);
-                for (j, t) in l.iter().enumerate().step_by(k) {
-                    let t = ctx.fit(t, ls, cw * k as f32 - 2.0);
+                for (_j, t) in l.iter().enumerate().step_by(k) {
+                    let _t = ctx.fit(t, ls, cw * k as f32 - 2.0);
                     // ctx.text(plot.x + (j as f32 + 0.5) * cw, plot.bottom() + 3.0, &t, ls, TEXT, HAlign::Center, VAlign::Top);
                 }
             }
@@ -473,8 +462,8 @@ fn frame(ctx: &mut Ctx, area: Bx, cat: CatAxis, y: &ValAxis, y2: Option<&ValAxis
                 let lw = labels.iter().map(|t| ctx.tw(t, ls)).fold(0.0f32, f32::max);
                 let slot = plot.w / ticks.len().max(1) as f32;
                 let k = (((lw + 6.0) / slot.max(1e-3)).ceil() as usize).max(1);
-                for (v, t) in ticks.iter().zip(&labels).step_by(k) {
-                    let xx = plot.x + s.frac(*v) * plot.w;
+                for (v, _t) in ticks.iter().zip(&labels).step_by(k) {
+                    let _xx = plot.x + s.frac(*v) * plot.w;
                     // ctx.text(xx, plot.bottom() + 3.0, t, ls, TEXT, HAlign::Center, VAlign::Top);
                 }
                 if s.min <= 0.0 && s.max >= 0.0 {
@@ -498,7 +487,7 @@ fn frame(ctx: &mut Ctx, area: Bx, cat: CatAxis, y: &ValAxis, y2: Option<&ValAxis
         let vw = maxw(ctx, &ylabels);
         let slot = plot.w / ylabels.len().max(1) as f32;
         let k = (((vw + 6.0) / slot.max(1e-3)).ceil() as usize).max(1);
-        for (i, (v, t)) in ylabels.iter().enumerate() {
+        for (i, (v, _t)) in ylabels.iter().enumerate() {
             let xx = plot.x + y.scale.frac(*v) * plot.w;
             if grid {
                 ctx.vline(xx, plot.y, plot.bottom(), GRID, 0.75);
@@ -513,8 +502,8 @@ fn frame(ctx: &mut Ctx, area: Bx, cat: CatAxis, y: &ValAxis, y2: Option<&ValAxis
         let n = labels.len().max(1);
         let ch = plot.h / n as f32;
         let k = ((lh / ch.max(1e-3)).ceil() as usize).clamp(1, n);
-        for (j, t) in labels.iter().enumerate().step_by(k) {
-            let t = ctx.fit(t, ls, lw - 6.0);
+        for (_j, t) in labels.iter().enumerate().step_by(k) {
+            let _t = ctx.fit(t, ls, lw - 6.0);
             // ctx.text(plot.x - 4.0, plot.bottom() - (j as f32 + 0.5) * ch, &t, ls, TEXT, HAlign::Right, VAlign::Middle);
         }
         plot
@@ -806,7 +795,7 @@ fn draw_trend_labels(ctx: &mut Ctx, plot: Bx, labels: &[String]) {
         if y + lh > plot.bottom() {
             break;
         }
-        let t = ctx.fit(t, LABEL_SIZE, plot.w - 8.0);
+        let _t = ctx.fit(t, LABEL_SIZE, plot.w - 8.0);
         // ctx.text(plot.right() - 4.0, y, &t, LABEL_SIZE, TEXT, HAlign::Right, VAlign::Top);
     }
 }
@@ -1056,11 +1045,11 @@ fn cartesian(ctx: &mut Ctx, chart: &Chart, data: &ChartData, area: Bx, horizonta
                             ctx.rect(x, lo, bw, len, s.color, None);
                         }
                         if labels_on && let Some(v) = s.values.get(j).copied().flatten() {
-                            let t = fmt.format(v, None);
+                            let _t = fmt.format(v, None);
                             let stacked = fam != Fam::Col;
-                            let mid = (pb + pt) / 2.0;
+                            let _mid = (pb + pt) / 2.0;
                             if horizontal {
-                                let y = c + nslots * bw / 2.0 - (k + 0.5) * bw;
+                                let _y = c + nslots * bw / 2.0 - (k + 0.5) * bw;
                                 if stacked {
                                     // ctx.text(mid, y, &t, LABEL_SIZE, on(s.color), HAlign::Center, VAlign::Middle);
                                 } else if v >= 0.0 {
@@ -1069,7 +1058,7 @@ fn cartesian(ctx: &mut Ctx, chart: &Chart, data: &ChartData, area: Bx, horizonta
                                     // ctx.text(lo - 3.0, y, &t, LABEL_SIZE, TEXT, HAlign::Right, VAlign::Middle);
                                 }
                             } else {
-                                let x = c - nslots * bw / 2.0 + (k + 0.5) * bw;
+                                let _x = c - nslots * bw / 2.0 + (k + 0.5) * bw;
                                 if stacked {
                                     // ctx.text(x, mid, &t, LABEL_SIZE, on(s.color), HAlign::Center, VAlign::Middle);
                                 } else if v >= 0.0 {
@@ -1090,7 +1079,7 @@ fn cartesian(ctx: &mut Ctx, chart: &Chart, data: &ChartData, area: Bx, horizonta
                     }
                     if labels_on {
                         for (j, p) in pts.iter().enumerate() {
-                            if let (Some(p), Some(v)) = (p, s.values.get(j).copied().flatten()) {
+                            if let (Some(_p), Some(_v)) = (p, s.values.get(j).copied().flatten()) {
                                 // ctx.text(p[0], p[1] - 5.0, &fmt.format(v, None), LABEL_SIZE, TEXT, HAlign::Center, VAlign::Bottom);
                             }
                         }
@@ -1098,7 +1087,7 @@ fn cartesian(ctx: &mut Ctx, chart: &Chart, data: &ChartData, area: Bx, horizonta
                 }
             }
         }
-        for (x, y, t) in area_labels.drain(..) {
+        for (_x, _y, _t) in area_labels.drain(..) {
             // ctx.text(x, y, &t, LABEL_SIZE, TEXT, HAlign::Center, VAlign::Bottom);
         }
     }
@@ -1198,7 +1187,7 @@ fn scatter(ctx: &mut Ctx, chart: &Chart, data: &ChartData, area: Bx) {
         }
         if chart.data_labels && pts.len() <= MAX_LABELS {
             for (p, raw) in px.iter().zip(pts) {
-                if let (Some(p), Some((_, y))) = (p, raw) {
+                if let (Some(_p), Some((_, _y))) = (p, raw) {
                     // ctx.text(p[0], p[1] - 6.0, &fy.format(*y, None), LABEL_SIZE, TEXT, HAlign::Center, VAlign::Bottom);
                 }
             }
@@ -1324,7 +1313,7 @@ fn waterfall(ctx: &mut Ctx, chart: &Chart, data: &ChartData, area: Bx) {
             ctx.out.push(Prim::Line { pts: vec![[x + bw, yt], [x + cw, yt]], color: AXIS, width: 0.75, dash: true });
         }
         if chart.data_labels && ncat <= MAX_LABELS {
-            let v = if *kind == 0 { *t } else { t - b };
+            let _v = if *kind == 0 { *t } else { t - b };
             // ctx.text(x + bw / 2.0, yb.min(yt) - 2.0, &f.format(v, None), LABEL_SIZE, TEXT, HAlign::Center, VAlign::Bottom);
         }
     }
@@ -1361,13 +1350,13 @@ fn funnel(ctx: &mut Ctx, chart: &Chart, data: &ChartData, area: Bx) {
             ctx.rect(x, y, bw, bh, s.color, None);
         }
         if show {
-            let yc = y + bh / 2.0;
+            let _yc = y + bh / 2.0;
             if chart.data_labels {
                 let t = f.format(s.values.get(j).copied().flatten().unwrap_or(0.0), None);
-                let color = if ctx.tw(&t, LABEL_SIZE) + 4.0 <= bw { on(s.color) } else { TEXT };
+                let _color = if ctx.tw(&t, LABEL_SIZE) + 4.0 <= bw { on(s.color) } else { TEXT };
                 // ctx.text(plot.cx(), yc, &t, LABEL_SIZE, color, HAlign::Center, VAlign::Middle);
             }
-            let l = ctx.fit(labels.get(j).map(String::as_str).unwrap_or(""), LABEL_SIZE, lw - 8.0);
+            let _l = ctx.fit(labels.get(j).map(String::as_str).unwrap_or(""), LABEL_SIZE, lw - 8.0);
             // ctx.text(plot.x - 6.0, yc, &l, LABEL_SIZE, TEXT, HAlign::Right, VAlign::Middle);
         }
     }
@@ -1408,7 +1397,7 @@ fn pie(ctx: &mut Ctx, chart: &Chart, data: &ChartData, area: Bx, inner: f32, nam
         }
         a += sweep;
     }
-    for (x, y, t, c) in labels {
+    for (_x, _y, _t, _c) in labels {
         // ctx.text(x, y, &t, LABEL_SIZE, c, HAlign::Center, VAlign::Middle);
     }
 }
@@ -1495,11 +1484,11 @@ fn treemap(ctx: &mut Ctx, chart: &Chart, data: &ChartData, area: Bx) {
         let fill = point_color(data, j);
         ctx.rect(b.x, b.y, b.w, b.h, fill, Some((WHITE, 1.5)));
         if b.w > 24.0 && b.h > LABEL_SIZE * 1.6 {
-            let name = ctx.fit(&cat_label(data, j), LABEL_SIZE, b.w - 8.0);
+            let _name = ctx.fit(&cat_label(data, j), LABEL_SIZE, b.w - 8.0);
             // ctx.text(b.x + 4.0, b.y + 4.0, &name, LABEL_SIZE, on(fill), HAlign::Left, VAlign::Top);
             if chart.data_labels && b.h > LABEL_SIZE * 3.2 {
                 let v = items.iter().find(|x| x.0 == j).map(|x| x.1).unwrap_or(0.0);
-                let t = ctx.fit(&f.format(v, None), LABEL_SIZE, b.w - 8.0);
+                let _t = ctx.fit(&f.format(v, None), LABEL_SIZE, b.w - 8.0);
                 // ctx.text(b.x + 4.0, b.y + 4.0 + LABEL_SIZE * 1.4, &t, LABEL_SIZE, on(fill), HAlign::Left, VAlign::Top);
             }
         }
@@ -1522,7 +1511,7 @@ fn radar(ctx: &mut Ctx, chart: &Chart, data: &ChartData, area: Bx) {
     let (cx, cy) = (area.cx(), area.cy());
     let (lo, hi) = value_range(data.series.iter().flat_map(|s| s.values.iter().flatten().copied())).unwrap_or((0.0, 0.0));
     let sc = nice_scale(lo, hi, true);
-    let f = Fmt::new(data.series.first().map(|s| s.number_format.as_str()).unwrap_or("General"));
+    let _f = Fmt::new(data.series.first().map(|s| s.number_format.as_str()).unwrap_or("General"));
     let ang = |j: usize| j as f32 / ncat as f32 * TAU;
     let pt = |a: f32, rr: f32| [cx + rr * a.sin(), cy - rr * a.cos()];
     let ticks = sc.ticks();
@@ -1547,23 +1536,23 @@ fn radar(ctx: &mut Ctx, chart: &Chart, data: &ChartData, area: Bx) {
     for j in (0..ncat).step_by(step) {
         let a = ang(j);
         ctx.line(vec![[cx, cy], pt(a, r)], GRID, 0.75);
-        let p = pt(a, r + 6.0);
+        let _p = pt(a, r + 6.0);
         let (sa, ca) = (a.sin(), a.cos());
-        let align = if sa > 0.1 {
+        let _align = if sa > 0.1 {
             HAlign::Left
         } else if sa < -0.1 {
             HAlign::Right
         } else {
             HAlign::Center
         };
-        let valign = if ca > 0.1 {
+        let _valign = if ca > 0.1 {
             VAlign::Bottom
         } else if ca < -0.1 {
             VAlign::Top
         } else {
             VAlign::Middle
         };
-        let t = ctx.fit(labels.get(j).map(String::as_str).unwrap_or(""), LABEL_SIZE, lw.max(20.0));
+        let _t = ctx.fit(labels.get(j).map(String::as_str).unwrap_or(""), LABEL_SIZE, lw.max(20.0));
         // ctx.text(p[0], p[1], &t, LABEL_SIZE, TEXT, align, valign);
     }
     for s in &data.series {
@@ -1750,15 +1739,15 @@ pub(crate) fn finalize(prims: Vec<Prim>, w: f32, h: f32) -> Vec<Prim> {
                 }
                 Some(Prim::Circle { cx: x, cy: y, r, fill, stroke: clamp_stroke(stroke) })
             },
-            Prim::Text { x, y, text, size, color, bold, align, valign, rotation } => {
-                if !(fin(x) && fin(y) && fin(size) && fin(rotation)) || text.is_empty() {
+            Prim::Text(ct) => {
+                if ct.content.is_empty() {
                     return None;
                 }
-                Some(Prim::Text { x: cx(x), y: cy(y), text, size: size.clamp(1.0, 200.0), color, bold, align, valign, rotation })
+                Some(Prim::Text(ct))
             },
-            Prim::TitleText(ti) => Some(Prim::TitleText(ti)),
-            Prim::XText(ti) => Some(Prim::XText(ti)),
-            Prim::YText(ti) => Some(Prim::YText(ti)),
+            Prim::TitleText(ct) => Some(Prim::TitleText(ct)),
+            Prim::XText(ct) => Some(Prim::XText(ct)),
+            Prim::YText(ct) => Some(Prim::YText(ct)),
         })
         .collect()
 }

@@ -1,9 +1,8 @@
 //! Iced charts (layer L3, toolkit-free).
-use iced::alignment;
 use iced::mouse;
 use iced::widget::canvas::{self, Canvas, Frame, Geometry, Path, Stroke};
 use iced::{
-    Color, Fill, Pixels, Point, Radians, Rectangle, Renderer, Size, Theme,
+    Color, Fill, Point, Radians, Rectangle, Renderer, Size, Theme,
     Vector, Widget,
 };
 
@@ -86,17 +85,7 @@ pub enum Prim {
         stroke: Option<(Rgba, f32)>,
     },
     /// Text anchored at `(x, y)` per `align`/`valign`, rotated by `rotation` radians about the anchor.
-    Text {
-        x: f32,
-        y: f32,
-        text: String,
-        size: f32,
-        color: Rgba,
-        bold: bool,
-        align: HAlign,
-        valign: VAlign,
-        rotation: f32,
-    },
+    Text(ChartText),
     TitleText(ChartText),
     YText(ChartText),
     XText(ChartText),
@@ -364,36 +353,19 @@ fn draw_prim(frame: &mut Frame, prim: &Prim) {
                 );
             }
         },
-        Prim::Text { x, y, text, size, color, bold: _, align, valign, rotation } => {
-            let y_align = match valign {
-                VAlign::Top => alignment::Vertical::Top,
-                VAlign::Middle => alignment::Vertical::Center,
-                VAlign::Bottom => alignment::Vertical::Bottom,
-            };
+        Prim::Text(ct) => {
             frame.with_save(|f| {
-                f.translate(Vector::new(*x, *y));
-                if *rotation != 0.0 {
-                    f.rotate(Radians(*rotation));
+                f.translate(Vector::new(ct.x, ct.y));
+                if ct.rotation != 0.0 {
+                    f.rotate(Radians(ct.rotation));
                 }
-                f.fill_text(canvas::Text {
-                    content: text.clone(),
-                    position: Point::ORIGIN,
-                    color: rgba_to_color(*color),
-                    size: Pixels(*size),
-                    align_x: match align {
-                        HAlign::Left => alignment::Horizontal::Left.into(),
-                        HAlign::Center => alignment::Horizontal::Center.into(),
-                        HAlign::Right => alignment::Horizontal::Right.into(),
-                    },
-                    align_y: y_align,
-                    ..canvas::Text::default()
-                });
+                f.fill_text(ct.clone().to_iced());
             });
         }, 
         Prim::TitleText(ct) => {
-            
             frame.with_save(|f| {
-                f.translate(Vector::new(ct.position.x, ct.position.y));
+                f.translate(Vector::new(ct.x, ct.y));
+                
                 if ct.rotation != 0.0 {
                     f.rotate(Radians(ct.rotation));
                 }
@@ -402,7 +374,7 @@ fn draw_prim(frame: &mut Frame, prim: &Prim) {
         },
         Prim::XText(ct) => {
             frame.with_save(|f| {
-                f.translate(Vector::new(ct.position.x, ct.position.y));
+                f.translate(Vector::new(ct.x, ct.y));
                 if ct.rotation != 0.0 {
                     f.rotate(Radians(ct.rotation));
                 }
@@ -411,7 +383,7 @@ fn draw_prim(frame: &mut Frame, prim: &Prim) {
         },
         Prim::YText(ct) => {
             frame.with_save(|f| {
-                f.translate(Vector::new(ct.position.x, ct.position.y));
+                f.translate(Vector::new(ct.x, ct.y));
                 if ct.rotation != 0.0 {
                     f.rotate(Radians(ct.rotation));
                 }

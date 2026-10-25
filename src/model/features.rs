@@ -1,6 +1,4 @@
 
-use std::f32::consts::PI;
-
 use iced::{Color, Font, Pixels, Point, alignment, widget::{canvas, text::{Ellipsis, LineHeight, Shaping, Wrapping}}};
 use iced::advanced::text::Alignment;
 use serde::{Deserialize, Serialize};
@@ -15,13 +13,13 @@ pub struct Chart {
     pub id: usize,
     pub kind: ChartKind,
     pub title: Option<ChartText>,
+    pub x_title: Option<ChartText>,
+    pub y_title: Option<ChartText>,
     pub series: Vec<Series>,
     pub legend: LegendPos,
     pub data_labels: bool,
     pub gridlines: bool,
     pub style: u32,
-    pub x_title: Option<ChartText>,
-    pub y_title: Option<ChartText>,
     pub source: Option<String>,
     pub by_rows: bool,
 }
@@ -32,13 +30,13 @@ impl Chart {
             id: 0,
             kind: ChartKind::Line,
             title: None,
+            x_title: None,
+            y_title: None,
             legend: LegendPos::Bottom,
             gridlines: true,
             data_labels: false,
             style: 0,
             series: vec![],
-            x_title: None,
-            y_title: None,
             source: None,
             by_rows: false,
         }
@@ -65,13 +63,15 @@ impl Chart {
     }
 
     pub fn y_title(mut self, title: ChartText) -> Self {
-        self.x_title = Some(title);
+        self.y_title = Some(title);
         self
     }
 }
 
 #[derive(Debug, Clone)]
 pub struct ChartText {
+    pub x: f32,
+    pub y: f32,
     pub title: bool,
     pub x_axis: bool,
     pub y_axis: bool,
@@ -79,8 +79,8 @@ pub struct ChartText {
     pub position: Point,
     pub max_width: f32,
     pub color: Color,
-    pub size: Pixels,
-    pub line_height: LineHeight,
+    pub size: f32,
+    pub line_height: f32,
     pub font: Font,
     pub align_x: Alignment,
     pub align_y: alignment::Vertical,
@@ -99,6 +99,8 @@ impl ChartText {
             _ => LABEL_SIZE
         };
         ChartText {
+            x: 0.0,
+            y: 0.0,
             title,
             x_axis,
             y_axis,
@@ -106,15 +108,15 @@ impl ChartText {
             position: Point::ORIGIN,
             max_width: f32::INFINITY,
             color: Color::BLACK,
-            size: Pixels(size),
-            line_height: LineHeight::Relative(1.2),
+            size: size,
+            line_height: 1.2,
             font: Font::default(),
             align_x: Alignment::Default,
             align_y: alignment::Vertical::Top,
             shaping: Shaping::default(),
             wrapping: Wrapping::default(),
             ellipsis: Ellipsis::default(),
-            rotation: PI/2.0,
+            rotation: 0.0,
         }
     }
 
@@ -124,8 +126,8 @@ impl ChartText {
             position: self.position, 
             max_width: self.max_width, 
             color: self.color, 
-            size: self.size, 
-            line_height: self.line_height, 
+            size: Pixels(self.size), 
+            line_height: LineHeight::Relative(self.line_height), 
             font: self.font, 
             align_x: self.align_x, 
             align_y: self.align_y, 

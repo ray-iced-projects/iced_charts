@@ -1,3 +1,5 @@
+use std::f32::consts::PI;
+
 use iced::widget::{PickList, container, row};
 use iced::{Theme, Widget};
 use iced_charts::model::features::ChartText;
@@ -26,11 +28,11 @@ impl Default for Example {
         title.content = "Website Traffic with Moving Average Trend".into();
 
         let mut x_title = ChartText::new(false, true, false);
-        title.content = "Days".into();
-
-        let mut y_title = ChartText::new(false, false, true);
-        title.content = "Visitors".into();
+        x_title.content = "Days".into();
         
+        let mut y_title = ChartText::new(false, false, true);
+        y_title.content = "Visitors".into();
+        y_title.rotation = PI/2.0;
         
         let selected_theme = Theme::TokyoNight;
         let bkg = selected_theme.palette().background;
