@@ -4,21 +4,20 @@ use std::collections::HashSet;
 use std::f32::consts::TAU;
 
 use crate::model::features::{Chart, ChartKind, ChartText, LegendPos, LineDash, TextKind, TrendlineKind};
-use crate::model::style::Theme;
+use crate::model::style::ChartTheme;
 use crate::axis::{Fmt, Scale, clean, fixed_scale, nice_scale};
 use crate::resolve::{MAX_POINTS, MAX_SERIES, MAX_TRENDLINES, series_color};
 use crate::trend::{auto_name, fit_trendline, moving_average};
-use crate::{ChartData, HAlign, Measure, Prim, Rgba, SeriesData, VAlign};
+use crate::{ChartData, HAlign, Measure, Prim, SeriesData, VAlign};
 
-pub(crate) const TEXT: [f32; 4] = [0x59 as f32 / 255.0, 0x59 as f32 / 255.0, 0x59 as f32 / 255.0, 1.0];
-const DARK_TEXT: Rgba = [0x26, 0x26, 0x26, 0xFF];
-const GRID: Rgba = [0xD9, 0xD9, 0xD9, 0xFF];
-const AXIS: [f32; 4] = [0xBF as f32 / 255.0, 0xBF as f32 / 255.0, 0xBF as f32 / 255.0, 0xFF as f32 / 255.0];
-const WHITE: Rgba = [0xFF, 0xFF, 0xFF, 0xFF];
-const TRANSPARENT: Rgba = [0xFF, 0xFF, 0xFF, 0x00];
-const STOCK: Rgba = [0x40, 0x40, 0x40, 0xFF];
-pub(crate) const UP: Rgba = [0x3E, 0x9B, 0x5F, 0xFF];
-pub(crate) const DOWN: Rgba = [0xD6, 0x4F, 0x45, 0xFF];
+pub(crate) const TEXT: iced::Color = iced::Color::from_packed_rgba8(0x595959, 1.0);
+const DARK_TEXT: iced::Color = iced::Color::from_packed_rgba8(0x262626, 1.0);
+const GRID: iced::Color = iced::Color::from_packed_rgba8(0xD9D9D9, 1.0);
+const AXIS: iced::Color = iced::Color::from_packed_rgba8(0xBFBFBF, 1.0);
+const WHITE: iced::Color = iced::Color::WHITE;
+const STOCK: iced::Color = iced::Color::from_packed_rgba8(0x404040, 1.0);
+pub(crate) const UP: iced::Color = iced::Color::from_packed_rgba8(0x3E9B5F, 1.0);
+pub(crate) const DOWN: iced::Color = iced::Color::from_packed_rgba8(0xD64F45, 1.0);
 
 
 const LABEL_SIZE: f32 = 9.0;
@@ -97,15 +96,15 @@ impl Ctx<'_> {
         }
 
     }
-    fn rect(&mut self, x: f32, y: f32, w: f32, h: f32, fill: Rgba, stroke: Option<(Rgba, f32)>) {
+    fn rect(&mut self, x: f32, y: f32, w: f32, h: f32, fill: iced::Color, stroke: Option<(iced::Color, f32)>) {
         self.out.push(Prim::Rect { x, y, w, h, fill: Some(fill), stroke, radius: 0.0 });
     }
     fn line(&mut self, pts: Vec<[f32; 2]>, color: iced::Color, width: f32) {
         if pts.len() >= 2 {
-            self.out.push(Prim::Line { pts, rgba_to_iced(color), width, dash: false });
+            self.out.push(Prim::Line { pts, color, width, dash: false });
         }
     }
-    fn hline(&mut self, x0: f32, x1: f32, y: f32, color: Rgba, width: f32) {
+    fn hline(&mut self, x0: f32, x1: f32, y: f32, color: iced::Color, width: f32) {
         self.line(vec![[x0, y], [x1, y]], color, width);
     }
     fn vline(&mut self, x: f32, y0: f32, y1: f32, color: iced::Color, width: f32) {
@@ -114,8 +113,8 @@ impl Ctx<'_> {
 }
 
 /// Text colour readable on `fill`.
-fn on(fill: Rgba) -> Rgba {
-    let l = 0.299 * fill[0] as f32 + 0.587 * fill[1] as f32 + 0.114 * fill[2] as f32;
+fn on(fill: iced::Color) -> iced::Color {
+    let l = 0.299 * fill.r + 0.587 * fill.g + 0.114 * fill.b;
     if l < 150.0 { WHITE } else { DARK_TEXT }
 }
 
@@ -134,10 +133,13 @@ fn plot_kind(chart: &Chart, s: &SeriesData) -> ChartKind {
 }
 
 /// Colour of point `j` for charts that colour by point (pie, doughnut, treemap, sunburst).
-fn point_color(data: &ChartData, j: usize) -> Rgba {
+fn point_color(data: &ChartData, j: usize) -> iced::Color {
     match (j, data.series.first()) {
         (0, Some(s)) => s.color,
-        _ => j.checked_rem(data.palette.len()).and_then(|k| data.palette.get(k)).copied().unwrap_or_else(|| series_color(&Theme::default(), j)),
+        _ => j.checked_rem(data.palette.len())
+            .and_then(|k| data.palette.get(k))
+            .copied()
+            .unwrap_or_else(|| series_color(&ChartTheme::default(), j)),
     }
 }
 
@@ -150,7 +152,7 @@ fn cat_label(data: &ChartData, j: usize) -> String {
 }
 
 /// Legend entries (text, colour, swatch) `render` draws for this chart; empty when hidden.
-pub fn legend_entries(chart: &Chart, data: &ChartData) -> Vec<(String, Rgba, Swatch)> {
+pub fn legend_entries(chart: &Chart, data: &ChartData) -> Vec<(String, iced::Color, Swatch)> {
     if chart.legend == LegendPos::None {
         return vec![];
     }
@@ -169,7 +171,7 @@ pub fn legend_entries(chart: &Chart, data: &ChartData) -> Vec<(String, Rgba, Swa
         }
         _ => {
             let series = data.series.iter().take(MAX_SERIES);
-            let mut out: Vec<(String, Rgba, Swatch)> = series
+            let mut out: Vec<(String, iced::Color, Swatch)> = series
                 .clone()
                 .map(|s| {
                     let sw = match plot_kind(chart, s) {
@@ -227,7 +229,7 @@ pub fn render(chart: &Chart, data: &ChartData, w: f32, h: f32, m: &dyn Measure) 
     }
     let data = sanitize(data);
     let mut ctx = Ctx { out: Vec::new(), m };
-    ctx.out.push(Prim::Rect { x: 0.0, y: 0.0, w, h, fill: Some(TRANSPARENT), stroke: Some((GRID, 1.0)), radius: 0.0 });
+    ctx.out.push(Prim::Rect { x: 0.0, y: 0.0, w, h, fill: Some(iced::Color::TRANSPARENT), stroke: Some((GRID, 1.0)), radius: 0.0 });
     let pad = (w.min(h) * 0.04).clamp(2.0, 10.0);
     let mut area = Bx { x: pad, y: pad, w: w - 2.0 * pad, h: h - 2.0 * pad };
     
@@ -304,7 +306,7 @@ fn swatch_w(sw: Swatch, s: f32) -> f32 {
     if sw == Swatch::Box { s } else { s * 2.0 }
 }
 
-fn draw_swatch(ctx: &mut Ctx, sw: Swatch, x: f32, yc: f32, s: f32, color: Rgba) {
+fn draw_swatch(ctx: &mut Ctx, sw: Swatch, x: f32, yc: f32, s: f32, color: iced::Color) {
     match sw {
         Swatch::Box => ctx.rect(x, yc - s / 2.0, s, s, color, None),
         Swatch::Line => ctx.hline(x, x + 2.0 * s, yc, color, 2.0),
@@ -316,13 +318,13 @@ fn draw_swatch(ctx: &mut Ctx, sw: Swatch, x: f32, yc: f32, s: f32, color: Rgba) 
     }
 }
 
-fn draw_legend(ctx: &mut Ctx, entries: &[(String, Rgba, Swatch)], pos: LegendPos, area: Bx) -> Bx {
+fn draw_legend(ctx: &mut Ctx, entries: &[(String, iced::Color, Swatch)], pos: LegendPos, area: Bx) -> Bx {
     let size = LABEL_SIZE;
     let row_h = size * 1.6;
     let s = size * 0.8;
     let gap = 4.0;
     let spacing = size * 1.3;
-    let item_w = |ctx: &Ctx, e: &(String, Rgba, Swatch)| swatch_w(e.2, s) + gap + ctx.tw(&e.0, size);
+    let item_w = |ctx: &Ctx, e: &(String, iced::Color, Swatch)| swatch_w(e.2, s) + gap + ctx.tw(&e.0, size);
     match pos {
         LegendPos::None => area,
         LegendPos::Top | LegendPos::Bottom => {
@@ -466,8 +468,7 @@ fn frame(ctx: &mut Ctx, area: Bx, cat: CatAxis, y: &ValAxis, y2: Option<&ValAxis
                 }
                 if s.min <= 0.0 && s.max >= 0.0 {
                     let xx = plot.x + s.frac(0.0) * plot.w;
-                    let color = iced::Color(AXIS.into());
-                    ctx.vline(xx, plot.y, plot.bottom(), color, 0.75);
+                    ctx.vline(xx, plot.y, plot.bottom(), AXIS, 0.75);
                 }
             }
         }
@@ -563,7 +564,7 @@ fn decimate(pts: Vec<[f32; 2]>, max: usize) -> Vec<[f32; 2]> {
 
 /// Draws a polyline split at gaps (`None`), decimated when long. With `smooth` (the plot box),
 /// each run is interpolated with a Catmull-Rom spline so the line curves through the data points.
-fn draw_runs(ctx: &mut Ctx, pts: &[Option<[f32; 2]>], color: Rgba, width: f32, smooth: Option<Bx>) {
+fn draw_runs(ctx: &mut Ctx, pts: &[Option<[f32; 2]>], color: iced::Color, width: f32, smooth: Option<Bx>) {
     let mut run: Vec<[f32; 2]> = Vec::new();
     for p in pts.iter().chain(std::iter::once(&None)) {
         match p {
@@ -626,7 +627,7 @@ fn catmull(p0: [f32; 2], p1: [f32; 2], p2: [f32; 2], p3: [f32; 2], t: f32) -> [f
     o
 }
 
-fn draw_markers(ctx: &mut Ctx, pts: impl Iterator<Item = [f32; 2]>, r: f32, color: Rgba) {
+fn draw_markers(ctx: &mut Ctx, pts: impl Iterator<Item = [f32; 2]>, r: f32, color: iced::Color) {
     let mut seen = HashSet::new();
     for p in pts {
         if seen.len() >= MAX_MARKERS {
@@ -1173,7 +1174,7 @@ fn scatter(ctx: &mut Ctx, chart: &Chart, data: &ChartData, area: Bx) {
                 .collect();
             bubbles.sort_by(|a, b| b.1.total_cmp(&a.1));
             let smax = if sizes.is_empty() { 1.0 } else { smax };
-            let fill = [s.color[0], s.color[1], s.color[2], 0xC0];
+            let fill = iced::Color::from_rgba(s.color.r, s.color.g, s.color.b, 0xC0 as f32 / 255.0);
             for (p, sz) in bubbles {
                 let r = ((sz / smax).sqrt() as f32 * rmax).max(1.0);
                 ctx.out.push(Prim::Circle { cx: p[0], cy: p[1], r, fill: Some(fill), stroke: Some((WHITE, 0.75)) });
@@ -1680,7 +1681,7 @@ fn fin(v: f32) -> bool {
     v.is_finite()
 }
 
-fn clamp_stroke(s: Option<(Rgba, f32)>) -> Option<(Rgba, f32)> {
+fn clamp_stroke(s: Option<(iced::Color, f32)>) -> Option<(iced::Color, f32)> {
     s.filter(|(_, w)| fin(*w) && *w > 0.0).map(|(c, w)| (c, w.min(50.0)))
 }
 

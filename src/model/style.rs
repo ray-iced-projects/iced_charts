@@ -39,7 +39,7 @@ impl Color {
         u32::from_str_radix(h, 16).ok().map(Color::Rgb)
     }
     /// Resolved RGB, `None` for automatic.
-    pub fn resolve(&self, theme: &Theme) -> Option<[u8; 3]> {
+    pub fn resolve(&self, theme: &ChartTheme) -> Option<[u8; 3]> {
         match *self {
             Color::Auto => None,
             Color::Rgb(v) => Some([(v >> 16) as u8, (v >> 8) as u8, v as u8]),
@@ -49,7 +49,7 @@ impl Color {
             }
         }
     }
-    pub fn hex(&self, theme: &Theme) -> Option<String> {
+    pub fn hex(&self, theme: &ChartTheme) -> Option<String> {
         self.resolve(theme).map(|[r, g, b]| format!("#{r:02X}{g:02X}{b:02X}"))
     }
 }
@@ -116,7 +116,7 @@ pub const DEFAULT_FONT_SIZE: f32 = 11.0;
 
 /// Workbook theme: 12 colours and the heading/body fonts.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub struct Theme {
+pub struct ChartTheme {
     pub name: String,
     /// lt1, dk1, lt2, dk2, accent1..6, hlink, folHlink (0xRRGGBB).
     pub colors: [u32; 12],
@@ -124,10 +124,10 @@ pub struct Theme {
     pub minor_font: String,
 }
 
-impl Default for Theme {
+impl Default for ChartTheme {
     /// Iced's own default theme ("Craft"): original palette.
     fn default() -> Self {
-        Theme {
+        ChartTheme {
             name: "Craft".into(),
             colors: [0xFFFFFF, 0x000000, 0xE8E8E8, 0x0E2841, 0x156082, 0xE97132, 0x196B24, 0x0F9ED5, 0xA02B93, 0x4EA72E, 0x467886, 0x96607D],
             major_font: DEFAULT_FONT.into(),
@@ -453,7 +453,7 @@ mod tests {
 
     #[test]
     fn colors() {
-        let th = Theme::default();
+        let th = ChartTheme::default();
         assert_eq!(Color::from_hex("#FF0000").unwrap().resolve(&th), Some([255, 0, 0]));
         assert_eq!(Color::from_hex("FF00FF00").unwrap().resolve(&th), Some([0, 255, 0]));
         assert_eq!(Color::Theme(0, -500).resolve(&th), Some([128, 128, 128]));

@@ -5,7 +5,7 @@ use iced::{Theme, Widget};
 use iced_charts::model::features::{ChartText, TextKind};
 use iced_charts::{Chart, ChartData, ChartKind, SeriesData, State, Trendline, TrendlineData, TrendlineKind};
 use iced_charts::resolve::series_color;
-use iced_charts::model::style::Theme as ChartTheme;
+use iced_charts::model::style::ChartTheme as ChartTheme;
 use iced_charts::model::series_colors::{theme_strings, str_to_theme};
 
 const TITLE_SIZE: f32 = 16.0;
@@ -93,7 +93,7 @@ impl Default for Example {
                                 width: Some(2.5),
                                 dash: None,
                             },
-                            color: [0xFF, 0x80, 0x00, 0xFF],  // Orange for the trendline
+                            color: iced::Color::from_rgba8(0xFF, 0x80, 0x00, 1.0),  // Orange for the trendline
                         }
                     ],
                     ..Default::default()

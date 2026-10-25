@@ -69,7 +69,7 @@ impl Default for Example {
                                 width: Some(2.5),
                                 dash: None,
                             },
-                            color: [0xFF, 0x80, 0x00, 0xFF],  // Orange for the trendline
+                            color: iced::Color::from_rgba8(0xFF, 0x80, 0x00, 1.0),  // Orange for the trendline
                         }
                     ],
                     ..Default::default()

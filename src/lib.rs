@@ -2,7 +2,7 @@
 use iced::mouse;
 use iced::widget::canvas::{self, Canvas, Frame, Geometry, Path, Stroke};
 use iced::{
-    Color, Fill, Point, Radians, Rectangle, Renderer, Size, Theme,
+    Fill, Point, Radians, Rectangle, Renderer, Size, Theme,
     Vector, Widget,
 };
 
@@ -24,6 +24,57 @@ pub use render::render;
 
 use crate::model::features::{ChartText, TextKind};
 
+mod color_serde {
+    use serde::{Deserialize, Deserializer};
+    use iced::Color;
+
+    pub fn deserialize<'de, D>(deserializer: D) -> Result<Vec<Color>, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let rgba_vec: Vec<[u8; 4]> = Deserialize::deserialize(deserializer)?;
+        Ok(rgba_vec
+            .into_iter()
+            .map(|[r, g, b, a]| Color::from_rgba(
+                r as f32 / 255.0,
+                g as f32 / 255.0,
+                b as f32 / 255.0,
+                a as f32 / 255.0,
+            ))
+            .collect())
+    }
+
+    pub mod single_color {
+        use serde::{Deserialize, Deserializer, Serialize, Serializer};
+        use iced::Color;
+
+        pub fn deserialize<'de, D>(deserializer: D) -> Result<Color, D::Error>
+        where
+            D: Deserializer<'de>,
+        {
+            let [r, g, b, a] = <[u8; 4]>::deserialize(deserializer)?;
+            Ok(Color::from_rgba(
+                r as f32 / 255.0,
+                g as f32 / 255.0,
+                b as f32 / 255.0,
+                a as f32 / 255.0,
+            ))
+        }
+
+        pub fn serialize<S>(color: &Color, serializer: S) -> Result<S::Ok, S::Error>
+        where
+            S: Serializer,
+        {
+            let [r, g, b, a] = [
+                (color.r * 255.0) as u8,
+                (color.g * 255.0) as u8,
+                (color.b * 255.0) as u8,
+                (color.a * 255.0) as u8,
+            ];
+            [r, g, b, a].serialize(serializer)
+        }
+    }
+}
 
 pub type Rgba = [u8; 4];
 
@@ -64,7 +115,7 @@ pub enum Prim {
     Polygon {
         pts: Vec<[f32; 2]>,
         fill: iced::Color,
-        stroke: Option<(Rgba, f32)>,
+        stroke: Option<(iced::Color, f32)>,
     },
     /// Pie/doughnut sector: centre, radii, angles in radians (0 = 12 o'clock, clockwise).
     Wedge {
@@ -75,7 +126,7 @@ pub enum Prim {
         a0: f32,
         a1: f32,
         fill: iced::Color,
-        stroke: Option<(Rgba, f32)>,
+        stroke: Option<(iced::Color, f32)>,
     },
     Circle {
         cx: f32,
@@ -114,8 +165,8 @@ pub struct ChartData {
     pub categories: Vec<String>,
     pub series: Vec<SeriesData>,
     /// Workbook-theme colours for the points of pie-like charts, repeating (point `j` uses entry `j % len`); empty uses the default theme.
-    #[serde(default)]
-    pub palette: Vec<Rgba>,
+    #[serde(default, deserialize_with = "color_serde::deserialize")]
+    pub palette: Vec<iced::Color>,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -126,7 +177,8 @@ pub struct SeriesData {
     pub x: Option<Vec<Option<f64>>>,
     /// Bubble sizes.
     pub sizes: Option<Vec<Option<f64>>>,
-    pub color: Rgba,
+    #[serde(with = "color_serde::single_color")]
+    pub color: iced::Color,
     /// Per-series kind (combo charts).
     pub kind: ChartKind,
     /// Plotted against the secondary (right) value axis.
@@ -143,7 +195,8 @@ pub struct SeriesData {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct TrendlineData {
     pub spec: Trendline,
-    pub color: Rgba,
+    #[serde(with = "color_serde::single_color")]
+    pub color: iced::Color,
 }
 
 impl Default for SeriesData {
@@ -153,7 +206,7 @@ impl Default for SeriesData {
             values: vec![],
             x: None,
             sizes: None,
-            color: [0x15, 0x60, 0x82, 0xFF],
+            color: iced::Color::from_packed_rgba8(0x156082, 1.0),
             kind: ChartKind::ColumnClustered,
             secondary: false,
             smooth: false,
@@ -229,10 +282,6 @@ impl <Message>canvas::Program<Message> for Grid<'_> {
     }
 }
 
-fn rgba_to_color(c: crate::Rgba) -> Color {
-    Color::from_rgba8(c[0], c[1], c[2], c[3] as f32 / 255.0)
-}
-
 fn draw_prim(frame: &mut Frame, prim: &Prim, theme: &Theme) {
     
     match prim {
@@ -260,7 +309,7 @@ fn draw_prim(frame: &mut Frame, prim: &Prim, theme: &Theme) {
             if let Some((color, lw)) = stroke {
                 frame.stroke(
                     &path,
-                    Stroke::default().with_color(rgba_to_color(*color)).with_width(*lw),
+                    Stroke::default().with_color(*color).with_width(*lw),
                 );
             }
         }
@@ -278,7 +327,7 @@ fn draw_prim(frame: &mut Frame, prim: &Prim, theme: &Theme) {
             });
             frame.stroke(
                 &path,
-                Stroke::default().with_color(rgba_to_color(*color)).with_width(*width),
+                Stroke::default().with_color(*color).with_width(*width),
             );
         }
         Prim::Polygon { pts, fill, stroke } => {
@@ -294,11 +343,11 @@ fn draw_prim(frame: &mut Frame, prim: &Prim, theme: &Theme) {
                     b.close();
                 }
             });
-            frame.fill(&path, rgba_to_color(*fill));
-            if let Some((rgba, lw)) = stroke {
+            frame.fill(&path, *fill);
+            if let Some((color, lw)) = stroke {
                 frame.stroke(
                     &path,
-                    Stroke::default().with_color(rgba_to_color(*rgba)).with_width(*lw),
+                    Stroke::default().with_color(*color).with_width(*lw),
                 );
             }
         }
@@ -334,23 +383,23 @@ fn draw_prim(frame: &mut Frame, prim: &Prim, theme: &Theme) {
                 }
                 b.close();
             });
-            frame.fill(&path, rgba_to_color(*fill));
-            if let Some((rgba, lw)) = stroke {
+            frame.fill(&path, *fill);
+            if let Some((color, lw)) = stroke {
                 frame.stroke(
                     &path,
-                    Stroke::default().with_color(rgba_to_color(*rgba)).with_width(*lw),
+                    Stroke::default().with_color(*color).with_width(*lw),
                 );
             }
         }
         Prim::Circle { cx, cy, r, fill, stroke } => {
             let path = Path::circle(Point::new(*cx, *cy), *r);
-            if let Some(rgba) = fill {
-                frame.fill(&path, rgba_to_color(*rgba));
+            if let Some(color) = fill {
+                frame.fill(&path, *color);
             }
-            if let Some((rgba, lw)) = stroke {
+            if let Some((color, lw)) = stroke {
                 frame.stroke(
                     &path,
-                    Stroke::default().with_color(rgba_to_color(*rgba)).with_width(*lw),
+                    Stroke::default().with_color(*color).with_width(*lw),
                 );
             }
         },
@@ -402,13 +451,4 @@ fn draw_prim(frame: &mut Frame, prim: &Prim, theme: &Theme) {
             });
         }
     }
-}
-
-fn rgba_to_iced(rgba: Rgba) -> iced::Color {
-    iced::Color::from_rgba(
-        rgba[0] as f32 / 255.0,
-        rgba[1] as f32 / 255.0,
-        rgba[2] as f32 / 255.0,
-        rgba[3] as f32 / 255.0,
-    )
 }
