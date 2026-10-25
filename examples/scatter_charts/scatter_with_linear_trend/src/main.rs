@@ -2,11 +2,15 @@ use std::f32::consts::PI;
 
 use iced::widget::{PickList, container, row};
 use iced::{Theme, Widget};
-use iced_charts::model::features::ChartText;
+use iced_charts::model::features::{ChartText, TextKind};
 use iced_charts::{Chart, ChartData, ChartKind, SeriesData, State, Trendline, TrendlineData, TrendlineKind};
 use iced_charts::resolve::series_color;
 use iced_charts::model::style::Theme as ChartTheme;
 use iced_charts::model::series_colors::{theme_strings, str_to_theme};
+
+const TITLE_SIZE: f32 = 16.0;
+const _LABEL_SIZE: f32 = 10.0;
+const AXIS_TITLE_SIZE: f32 = 12.0;
 
 
 pub fn main() -> iced::Result {
@@ -24,15 +28,18 @@ struct Example {
 impl Default for Example {
     fn default() -> Self {
 
-        let mut title = ChartText::new(true, false, false);
+        let mut title = ChartText::new(TextKind::Title);
         title.content = "Website Traffic with Moving Average Trend".into();
+        title.size = TITLE_SIZE;
 
-        let mut x_title = ChartText::new(false, true, false);
+        let mut x_title = ChartText::new(TextKind::XAxis);
         x_title.content = "Days".into();
+        x_title.size = AXIS_TITLE_SIZE;
         
-        let mut y_title = ChartText::new(false, false, true);
-        y_title.content = "Visitors".into();
+        let mut y_title = ChartText::new(TextKind::YAxis);
+        y_title.content = "Dailey Visitors".into();
         y_title.rotation = PI/2.0;
+        y_title.size = AXIS_TITLE_SIZE;
         
         let selected_theme = Theme::TokyoNight;
         let bkg = selected_theme.palette().background;
@@ -112,6 +119,8 @@ impl Example {
         match message {
             Message::OnThemeSelect(str) => {
                 self.selected_theme = str_to_theme(&str);
+                self.selected_theme_str = str;
+                self.grid.request_redraw();
             }
         }
     }
@@ -127,6 +136,7 @@ impl Example {
                 theme_strings(), 
                 |s: &String| s.clone(),
             )
+            .width(220.0)
             .on_select(Message::OnThemeSelect)
             .boxed();
 
@@ -134,7 +144,7 @@ impl Example {
             pl,
             container(self.grid.view().map(|_| unreachable!()))
                 .padding(20).boxed()
-        ]).boxed()
+        ]).padding(20.0).boxed()
 
     }
 }

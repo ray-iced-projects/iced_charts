@@ -3,26 +3,26 @@
 use std::collections::HashSet;
 use std::f32::consts::TAU;
 
-use crate::model::features::{Chart, ChartKind, ChartText, LegendPos, LineDash, TrendlineKind};
+use crate::model::features::{Chart, ChartKind, ChartText, LegendPos, LineDash, TextKind, TrendlineKind};
 use crate::model::style::Theme;
 use crate::axis::{Fmt, Scale, clean, fixed_scale, nice_scale};
 use crate::resolve::{MAX_POINTS, MAX_SERIES, MAX_TRENDLINES, series_color};
 use crate::trend::{auto_name, fit_trendline, moving_average};
 use crate::{ChartData, HAlign, Measure, Prim, Rgba, SeriesData, VAlign};
 
-pub(crate) const TEXT: Rgba = [0x59, 0x59, 0x59, 0xFF];
+pub(crate) const TEXT: [f32; 4] = [0x59 as f32 / 255.0, 0x59 as f32 / 255.0, 0x59 as f32 / 255.0, 1.0];
 const DARK_TEXT: Rgba = [0x26, 0x26, 0x26, 0xFF];
 const GRID: Rgba = [0xD9, 0xD9, 0xD9, 0xFF];
-const AXIS: Rgba = [0xBF, 0xBF, 0xBF, 0xFF];
+const AXIS: [f32; 4] = [0xBF as f32 / 255.0, 0xBF as f32 / 255.0, 0xBF as f32 / 255.0, 0xFF as f32 / 255.0];
 const WHITE: Rgba = [0xFF, 0xFF, 0xFF, 0xFF];
 const TRANSPARENT: Rgba = [0xFF, 0xFF, 0xFF, 0x00];
 const STOCK: Rgba = [0x40, 0x40, 0x40, 0xFF];
 pub(crate) const UP: Rgba = [0x3E, 0x9B, 0x5F, 0xFF];
 pub(crate) const DOWN: Rgba = [0xD6, 0x4F, 0x45, 0xFF];
 
-const TITLE_SIZE: f32 = 14.0;
+
 const LABEL_SIZE: f32 = 9.0;
-const AXIS_TITLE_SIZE: f32 = 10.0;
+
 /// Most categories drawn by category-axis charts.
 const MAX_CATS: usize = 20_000;
 /// Lines with more points than this are decimated (min/max per pixel column).
@@ -88,28 +88,27 @@ impl Ctx<'_> {
         let mut ct = ct.clone();
         ct.x = x;
         ct.y = y;
-        if ct.title {
-            self.out.push(Prim::TitleText(ct));
-        } else if ct.x_axis {
-            self.out.push(Prim::XText(ct));
-        } else if ct.y_axis {
-            self.out.push(Prim::YText(ct));
-        } else {
-            return;
+        match ct.text_kind {
+            TextKind::Title => self.out.push(Prim::TitleText(ct)),
+            TextKind::XAxis => self.out.push(Prim::XText(ct)),
+            TextKind::YAxis => self.out.push(Prim::YText(ct)),
+            TextKind::AxisLabels => self.out.push(Prim::LabelText(ct)),
+            _ => return,
         }
+
     }
     fn rect(&mut self, x: f32, y: f32, w: f32, h: f32, fill: Rgba, stroke: Option<(Rgba, f32)>) {
         self.out.push(Prim::Rect { x, y, w, h, fill: Some(fill), stroke, radius: 0.0 });
     }
-    fn line(&mut self, pts: Vec<[f32; 2]>, color: Rgba, width: f32) {
+    fn line(&mut self, pts: Vec<[f32; 2]>, color: iced::Color, width: f32) {
         if pts.len() >= 2 {
-            self.out.push(Prim::Line { pts, color, width, dash: false });
+            self.out.push(Prim::Line { pts, rgba_to_iced(color), width, dash: false });
         }
     }
     fn hline(&mut self, x0: f32, x1: f32, y: f32, color: Rgba, width: f32) {
         self.line(vec![[x0, y], [x1, y]], color, width);
     }
-    fn vline(&mut self, x: f32, y0: f32, y1: f32, color: Rgba, width: f32) {
+    fn vline(&mut self, x: f32, y0: f32, y1: f32, color: iced::Color, width: f32) {
         self.line(vec![[x, y0], [x, y1]], color, width);
     }
 }
@@ -221,15 +220,6 @@ fn sanitize(d: &ChartData) -> ChartData {
     }
 }
 
-fn chart_title(chart: &Chart, data: &ChartData) -> Option<String> {
-    
-    match &chart.title {
-        Some(t) => Some(t.content.clone()).filter(|t| !t.is_empty()),
-        None if data.series.len() == 1 => data.series.first().map(|s| s.name.clone()).filter(|t| !t.is_empty()),
-        None => None,
-    }
-}
-
 /// Lays out and draws a chart into a `w`×`h` box at the origin. Empty for a degenerate box.
 pub fn render(chart: &Chart, data: &ChartData, w: f32, h: f32, m: &dyn Measure) -> Vec<Prim> {
     if !(w.is_finite() && h.is_finite()) || w < 1.0 || h < 1.0 || w > 1e7 || h > 1e7 {
@@ -270,9 +260,9 @@ fn draw_kind(ctx: &mut Ctx, chart: &Chart, data: &ChartData, area: Bx) {
         ChartKind::Radar => radar(ctx, chart, data, area),
         _ => {
             let area = axis_titles(ctx, chart, area);
-            // if !area.ok() {
-            //     return;
-            // }
+            if !area.ok() {
+                return;
+            }
             match chart.kind {
                 ChartKind::BarClustered | ChartKind::BarStacked | ChartKind::BarStacked100 => cartesian(ctx, chart, data, area, true),
                 ChartKind::Scatter | ChartKind::ScatterLines | ChartKind::Bubble => scatter(ctx, chart, data, area),
@@ -451,9 +441,12 @@ fn frame(ctx: &mut Ctx, area: Bx, cat: CatAxis, y: &ValAxis, y2: Option<&ValAxis
                 let cw = plot.w / n as f32;
                 let lw = l.iter().take(2000).map(|t| ctx.tw(t, ls)).fold(0.0f32, f32::max);
                 let k = (((lw + 6.0) / cw.max(1e-3)).ceil() as usize).clamp(1, n);
-                for (_j, t) in l.iter().enumerate().step_by(k) {
+                for (j, t) in l.iter().enumerate().step_by(k) {
                     let _t = ctx.fit(t, ls, cw * k as f32 - 2.0);
-                    // ctx.text(plot.x + (j as f32 + 0.5) * cw, plot.bottom() + 3.0, &t, ls, TEXT, HAlign::Center, VAlign::Top);
+                    let mut ct = ChartText::new(TextKind::AxisLabels);
+                    ct.x = plot.x + (j as f32 + 0.5) * cw;
+                    ct.y = plot.bottom() + 3.0;
+                    ctx.text(ct.x, ct.y, ct);
                 }
             }
             CatAxis::Numeric(s, f) => {
@@ -462,13 +455,19 @@ fn frame(ctx: &mut Ctx, area: Bx, cat: CatAxis, y: &ValAxis, y2: Option<&ValAxis
                 let lw = labels.iter().map(|t| ctx.tw(t, ls)).fold(0.0f32, f32::max);
                 let slot = plot.w / ticks.len().max(1) as f32;
                 let k = (((lw + 6.0) / slot.max(1e-3)).ceil() as usize).max(1);
-                for (v, _t) in ticks.iter().zip(&labels).step_by(k) {
-                    let _xx = plot.x + s.frac(*v) * plot.w;
-                    // ctx.text(xx, plot.bottom() + 3.0, t, ls, TEXT, HAlign::Center, VAlign::Top);
+                for (v, t) in ticks.iter().zip(&labels).step_by(k) {
+                    let xx = plot.x + s.frac(*v) * plot.w;
+                    let mut ct = ChartText::new(TextKind::AxisLabels);
+                    ct.content = t.clone();
+                    ct.x = xx;
+                    ct.y = plot.bottom() + 3.0;
+
+                    ctx.text(ct.x, ct.y, ct); //HAlign::Center, VAlign::Top);
                 }
                 if s.min <= 0.0 && s.max >= 0.0 {
                     let xx = plot.x + s.frac(0.0) * plot.w;
-                    ctx.vline(xx, plot.y, plot.bottom(), AXIS, 0.75);
+                    let color = iced::Color(AXIS.into());
+                    ctx.vline(xx, plot.y, plot.bottom(), color, 0.75);
                 }
             }
         }
@@ -1145,7 +1144,10 @@ fn scatter(ctx: &mut Ctx, chart: &Chart, data: &ChartData, area: Bx) {
     let ys = nice_scale(ylo, yhi, false);
     let fx = Fmt::new("General");
     let fy = Fmt::new(data.series.first().map(|s| s.number_format.as_str()).unwrap_or("General"));
+    
+    // Returns plot area but ctx is filled for the actual rendeering.
     let plot = frame(ctx, area, CatAxis::Numeric(xs, &fx), &ValAxis { scale: ys, fmt: &fy }, None, false, chart.gridlines);
+    
     if !plot.ok() {
         return;
     }
@@ -1739,6 +1741,7 @@ pub(crate) fn finalize(prims: Vec<Prim>, w: f32, h: f32) -> Vec<Prim> {
                 }
                 Some(Prim::Circle { cx: x, cy: y, r, fill, stroke: clamp_stroke(stroke) })
             },
+            Prim::LabelText(ct) => Some(Prim::LabelText(ct)),
             Prim::Text(ct) => {
                 if ct.content.is_empty() {
                     return None;

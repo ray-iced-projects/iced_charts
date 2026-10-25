@@ -22,7 +22,7 @@ use serde::{Deserialize, Serialize};
 pub use axis::{Scale, format_number, nice_scale};
 pub use render::render;
 
-use crate::model::features::ChartText;
+use crate::model::features::{ChartText, TextKind};
 
 
 pub type Rgba = [u8; 4];
@@ -51,19 +51,19 @@ pub enum Prim {
         y: f32,
         w: f32,
         h: f32,
-        fill: Option<Rgba>,
-        stroke: Option<(Rgba, f32)>,
+        fill: Option<iced::Color>,
+        stroke: Option<(iced::Color, f32)>,
         radius: f32,
     },
     Line {
         pts: Vec<[f32; 2]>,
-        color: Rgba,
+        color: iced::Color,
         width: f32,
         dash: bool,
     },
     Polygon {
         pts: Vec<[f32; 2]>,
-        fill: Rgba,
+        fill: iced::Color,
         stroke: Option<(Rgba, f32)>,
     },
     /// Pie/doughnut sector: centre, radii, angles in radians (0 = 12 o'clock, clockwise).
@@ -74,18 +74,19 @@ pub enum Prim {
         r_inner: f32,
         a0: f32,
         a1: f32,
-        fill: Rgba,
+        fill: iced::Color,
         stroke: Option<(Rgba, f32)>,
     },
     Circle {
         cx: f32,
         cy: f32,
         r: f32,
-        fill: Option<Rgba>,
-        stroke: Option<(Rgba, f32)>,
+        fill: Option<iced::Color>,
+        stroke: Option<(iced::Color, f32)>,
     },
     /// Text anchored at `(x, y)` per `align`/`valign`, rotated by `rotation` radians about the anchor.
     Text(ChartText),
+    LabelText(ChartText),
     TitleText(ChartText),
     YText(ChartText),
     XText(ChartText),
@@ -188,14 +189,14 @@ struct Grid<'a> {
     state: &'a State,
 }
 
-impl canvas::Program<()> for Grid<'_> {
+impl <Message>canvas::Program<Message> for Grid<'_> {
     type State = ();
 
     fn draw(
         &self,
         _state: &Self::State,
         renderer: &Renderer,
-        _theme: &Theme,
+        theme: &Theme,
         bounds: Rectangle,
         _cursor: mouse::Cursor,
     ) -> Vec<Geometry> {
@@ -208,7 +209,7 @@ impl canvas::Program<()> for Grid<'_> {
                 &ApproxMeasure,
             );
             for prim in &prims {
-                draw_prim(frame, prim);
+                draw_prim(frame, prim, theme);
             }
         });
         vec![content]
@@ -232,7 +233,7 @@ fn rgba_to_color(c: crate::Rgba) -> Color {
     Color::from_rgba8(c[0], c[1], c[2], c[3] as f32 / 255.0)
 }
 
-fn draw_prim(frame: &mut Frame, prim: &Prim) {
+fn draw_prim(frame: &mut Frame, prim: &Prim, theme: &Theme) {
     
     match prim {
         Prim::Rect { x, y, w, h, fill, stroke, radius } => {
@@ -253,13 +254,13 @@ fn draw_prim(frame: &mut Frame, prim: &Prim) {
             } else {
                 Path::rectangle(Point::new(*x, *y), Size::new(*w, *h))
             };
-            if let Some(rgba) = fill {
-                frame.fill(&path, rgba_to_color(*rgba));
+            if let Some(color) = fill {
+                frame.fill(&path, *color);
             }
-            if let Some((rgba, lw)) = stroke {
+            if let Some((color, lw)) = stroke {
                 frame.stroke(
                     &path,
-                    Stroke::default().with_color(rgba_to_color(*rgba)).with_width(*lw),
+                    Stroke::default().with_color(rgba_to_color(*color)).with_width(*lw),
                 );
             }
         }
@@ -359,7 +360,17 @@ fn draw_prim(frame: &mut Frame, prim: &Prim) {
                 if ct.rotation != 0.0 {
                     f.rotate(Radians(ct.rotation));
                 }
-                f.fill_text(ct.clone().to_iced());
+                f.fill_text(ct.clone().to_iced(theme, TextKind::Text));
+            });
+        },
+        Prim::LabelText(ct) => {
+
+            frame.with_save(|f| {
+                f.translate(Vector::new(ct.x, ct.y));
+                if ct.rotation != 0.0 {
+                    f.rotate(Radians(ct.rotation));
+                }
+                f.fill_text(ct.clone().to_iced(theme, TextKind::AxisLabels));
             });
         }, 
         Prim::TitleText(ct) => {
@@ -369,7 +380,7 @@ fn draw_prim(frame: &mut Frame, prim: &Prim) {
                 if ct.rotation != 0.0 {
                     f.rotate(Radians(ct.rotation));
                 }
-                f.fill_text(ct.clone().to_iced());
+                f.fill_text(ct.clone().to_iced(theme, TextKind::Title));
             });
         },
         Prim::XText(ct) => {
@@ -378,7 +389,7 @@ fn draw_prim(frame: &mut Frame, prim: &Prim) {
                 if ct.rotation != 0.0 {
                     f.rotate(Radians(ct.rotation));
                 }
-                f.fill_text(ct.clone().to_iced());
+                f.fill_text(ct.clone().to_iced(theme, TextKind::XAxis));
             });
         },
         Prim::YText(ct) => {
@@ -387,8 +398,17 @@ fn draw_prim(frame: &mut Frame, prim: &Prim) {
                 if ct.rotation != 0.0 {
                     f.rotate(Radians(ct.rotation));
                 }
-                f.fill_text(ct.clone().to_iced());
+                f.fill_text(ct.clone().to_iced(theme, TextKind::YAxis));
             });
         }
     }
+}
+
+fn rgba_to_iced(rgba: Rgba) -> iced::Color {
+    iced::Color::from_rgba(
+        rgba[0] as f32 / 255.0,
+        rgba[1] as f32 / 255.0,
+        rgba[2] as f32 / 255.0,
+        rgba[3] as f32 / 255.0,
+    )
 }

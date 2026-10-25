@@ -72,9 +72,7 @@ impl Chart {
 pub struct ChartText {
     pub x: f32,
     pub y: f32,
-    pub title: bool,
-    pub x_axis: bool,
-    pub y_axis: bool,
+    pub text_kind: TextKind,
     pub content: String,
     pub position: Point,
     pub max_width: f32,
@@ -91,19 +89,18 @@ pub struct ChartText {
 }
 
 impl ChartText {
-    pub fn new(title: bool, x_axis: bool, y_axis: bool) -> ChartText {
-        let size = match (title, x_axis, y_axis) {
-            (true, false, false) => TITLE_SIZE,
-            (false, true, false) => AXIS_TITLE_SIZE,
-            (false, false, true) => AXIS_TITLE_SIZE,
-            _ => LABEL_SIZE
+    pub fn new(kind: TextKind) -> ChartText {
+        let size = match kind {
+            TextKind::Title => TITLE_SIZE,
+            TextKind::XAxis => AXIS_TITLE_SIZE,
+            TextKind::YAxis => AXIS_TITLE_SIZE,
+            TextKind::AxisLabels => LABEL_SIZE,
+            _ => 10.0
         };
         ChartText {
             x: 0.0,
             y: 0.0,
-            title,
-            x_axis,
-            y_axis,
+            text_kind: kind,
             content: String::new(),
             position: Point::ORIGIN,
             max_width: f32::INFINITY,
@@ -120,12 +117,21 @@ impl ChartText {
         }
     }
 
-    pub fn to_iced(self) -> canvas::Text {
+    pub fn to_iced(self, theme: &iced::Theme, kind: TextKind) -> canvas::Text {
+        let bkg = theme.palette().background;
+        let color = match kind {
+            TextKind::Title => bkg.strongest.text,
+            TextKind::XAxis => bkg.strong.text,
+            TextKind::YAxis => bkg.strong.text,
+            TextKind::Text => bkg.base.text,
+            TextKind::AxisLabels => bkg.strong.text,
+        };
+
         canvas::Text { 
             content: self.content, 
             position: self.position, 
             max_width: self.max_width, 
-            color: self.color, 
+            color: color, 
             size: Pixels(self.size), 
             line_height: LineHeight::Relative(self.line_height), 
             font: self.font, 
@@ -138,6 +144,15 @@ impl ChartText {
     }
 }
 
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub enum TextKind {
+    AxisLabels,
+    #[default]
+    Text,
+    Title,
+    XAxis,
+    YAxis,
+}
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum ChartKind {
