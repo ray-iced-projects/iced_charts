@@ -1,6 +1,7 @@
 use iced::widget::{PickList, container, row};
 use iced::{Theme, Widget};
-use iced_charts::{Chart, ChartData, ChartKind, LegendPos, SeriesData, State, Title, Trendline, TrendlineData, TrendlineKind};
+use iced_charts::model::features::ChartText;
+use iced_charts::{Chart, ChartData, ChartKind, SeriesData, State, Trendline, TrendlineData, TrendlineKind};
 use iced_charts::resolve::series_color;
 use iced_charts::model::style::Theme as ChartTheme;
 use iced_charts::model::series_colors::{theme_strings, str_to_theme};
@@ -21,21 +22,21 @@ struct Example {
 impl Default for Example {
     fn default() -> Self {
 
-        let mut title = Title::default();
-        title.text.content = "Website Traffic with Moving Average Trend".into();
+        let mut title = ChartText::new(true, false, false);
+        title.content = "Website Traffic with Moving Average Trend".into();
 
-        let mut x_title = Title::default();
-        title.text.content = "Days".into();
+        let mut x_title = ChartText::new(false, true, false);
+        title.content = "Days".into();
 
-        let mut y_title = Title::default();
-        title.text.content = "Visitors".into();
+        let mut y_title = ChartText::new(false, false, true);
+        title.content = "Visitors".into();
         
         
         let selected_theme = Theme::TokyoNight;
         let bkg = selected_theme.palette().background;
-        title.text.color = bkg.strongest.text;
-        x_title.text.color = bkg.strong.text;
-        y_title.text.color = bkg.strong.text;
+        title.color = bkg.strongest.text;
+        x_title.color = bkg.strong.text;
+        y_title.color = bkg.strong.text;
         
         let chart = 
             Chart::new(

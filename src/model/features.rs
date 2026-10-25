@@ -54,17 +54,17 @@ impl Chart {
             }
     }
 
-    pub fn title(mut self, title: Title) -> Self {
+    pub fn title(mut self, title: ChartText) -> Self {
         self.title = Some(title);
         self
     }
 
-    pub fn x_title(mut self, title: Title) -> Self {
+    pub fn x_title(mut self, title: ChartText) -> Self {
         self.x_title = Some(title);
         self
     }
 
-    pub fn y_title(mut self, title: Title) -> Self {
+    pub fn y_title(mut self, title: ChartText) -> Self {
         self.x_title = Some(title);
         self
     }
@@ -72,6 +72,9 @@ impl Chart {
 
 #[derive(Debug, Clone)]
 pub struct ChartText {
+    pub title: bool,
+    pub x_axis: bool,
+    pub y_axis: bool,
     pub content: String,
     pub position: Point,
     pub max_width: f32,
@@ -84,16 +87,21 @@ pub struct ChartText {
     pub shaping: Shaping,
     pub wrapping: Wrapping,
     pub ellipsis: Ellipsis,
+    pub rotation: f32,
 }
 
 impl ChartText {
-    fn new(title: bool, axis: bool) -> ChartText {
-        let size = match (title, axis) {
-            (true, false) => TITLE_SIZE,
-            (false, true) => AXIS_TITLE_SIZE,
+    pub fn new(title: bool, x_axis: bool, y_axis: bool) -> ChartText {
+        let size = match (title, x_axis, y_axis) {
+            (true, false, false) => TITLE_SIZE,
+            (false, true, false) => AXIS_TITLE_SIZE,
+            (false, false, true) => AXIS_TITLE_SIZE,
             _ => LABEL_SIZE
         };
         ChartText {
+            title,
+            x_axis,
+            y_axis,
             content: String::new(),
             position: Point::ORIGIN,
             max_width: f32::INFINITY,
@@ -106,6 +114,7 @@ impl ChartText {
             shaping: Shaping::default(),
             wrapping: Wrapping::default(),
             ellipsis: Ellipsis::default(),
+            rotation: PI/2.0,
         }
     }
 

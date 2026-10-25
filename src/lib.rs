@@ -17,11 +17,13 @@ pub mod resolve;
 pub mod trend;
 
 
-pub use model::features::{Chart, ChartKind, LegendPos, SparklineKind, Trendline, TrendlineKind, Title};
+pub use model::features::{Chart, ChartKind, LegendPos, SparklineKind, Trendline, TrendlineKind};
 use serde::{Deserialize, Serialize};
 
 pub use axis::{Scale, format_number, nice_scale};
 pub use render::render;
+
+use crate::model::features::ChartText;
 
 
 pub type Rgba = [u8; 4];
@@ -95,9 +97,9 @@ pub enum Prim {
         valign: VAlign,
         rotation: f32,
     },
-    TitleText(Title),
-    YText(Title),
-    XText(Title),
+    TitleText(ChartText),
+    YText(ChartText),
+    XText(ChartText),
 }
 
 /// Measures text width (the UI passes real font metrics; tests use a fixed-width approximation).
@@ -242,6 +244,7 @@ fn rgba_to_color(c: crate::Rgba) -> Color {
 }
 
 fn draw_prim(frame: &mut Frame, prim: &Prim) {
+    
     match prim {
         Prim::Rect { x, y, w, h, fill, stroke, radius } => {
             let path = if *radius > 0.0 {
@@ -387,31 +390,32 @@ fn draw_prim(frame: &mut Frame, prim: &Prim) {
                 });
             });
         }, 
-        Prim::TitleText(ti) => {
+        Prim::TitleText(ct) => {
+            
             frame.with_save(|f| {
-                f.translate(Vector::new(ti.x, ti.y));
-                if ti.rotation != 0.0 {
-                    f.rotate(Radians(ti.rotation));
+                f.translate(Vector::new(ct.position.x, ct.position.y));
+                if ct.rotation != 0.0 {
+                    f.rotate(Radians(ct.rotation));
                 }
-                f.fill_text(ti.text.clone());
+                f.fill_text(ct.clone().to_iced());
             });
         },
-        Prim::XText(ti) => {
+        Prim::XText(ct) => {
             frame.with_save(|f| {
-                f.translate(Vector::new(ti.x, ti.y));
-                if ti.rotation != 0.0 {
-                    f.rotate(Radians(ti.rotation));
+                f.translate(Vector::new(ct.position.x, ct.position.y));
+                if ct.rotation != 0.0 {
+                    f.rotate(Radians(ct.rotation));
                 }
-                f.fill_text(ti.text.clone());
+                f.fill_text(ct.clone().to_iced());
             });
         },
-        Prim::YText(ti) => {
+        Prim::YText(ct) => {
             frame.with_save(|f| {
-                f.translate(Vector::new(ti.x, ti.y));
-                if ti.rotation != 0.0 {
-                    f.rotate(Radians(ti.rotation));
+                f.translate(Vector::new(ct.position.x, ct.position.y));
+                if ct.rotation != 0.0 {
+                    f.rotate(Radians(ct.rotation));
                 }
-                f.fill_text(ti.text.clone());
+                f.fill_text(ct.clone().to_iced());
             });
         }
     }
