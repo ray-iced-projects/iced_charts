@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 
 const _AXIS_TITLE_SIZE: f32 = 10.0;
 
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug)]
 pub struct Chart {
     pub id: usize,
     pub kind: ChartKind,
@@ -24,8 +24,8 @@ pub struct Chart {
     pub by_rows: bool,
 }
 
-impl Chart {
-    pub fn default(&self) -> Self {
+impl Default for Chart {
+    fn default() -> Self {
         Self {
             id: 0,
             kind: ChartKind::Line,
@@ -41,6 +41,8 @@ impl Chart {
             by_rows: false,
         }
     }
+}
+impl Chart {    
     pub fn new(
         id: usize, 
         kind: ChartKind,

@@ -76,7 +76,6 @@ mod color_serde {
     }
 }
 
-pub type Rgba = [u8; 4];
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub enum HAlign {

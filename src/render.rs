@@ -12,7 +12,7 @@ use crate::{ChartData, HAlign, Measure, Prim, SeriesData, VAlign};
 
 pub(crate) const TEXT: iced::Color = iced::Color::from_packed_rgba8(0x595959, 1.0);
 const DARK_TEXT: iced::Color = iced::Color::from_packed_rgba8(0x262626, 1.0);
-const GRID: iced::Color = iced::Color::from_packed_rgba8(0xD9D9D9, 1.0);
+const GRID: iced::Color = iced::Color::WHITE;//iced::Color::from_packed_rgba8(0xD9D9D9, 1.0);
 const AXIS: iced::Color = iced::Color::from_packed_rgba8(0xBFBFBF, 1.0);
 const WHITE: iced::Color = iced::Color::WHITE;
 const STOCK: iced::Color = iced::Color::from_packed_rgba8(0x404040, 1.0);
