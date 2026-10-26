@@ -127,6 +127,7 @@ impl ChartText {
             TextKind::YTitle => bkg.strongest.text,
             TextKind::XAxisLabels => bkg.strong.text,
             TextKind::YAxisLabels => bkg.strong.text,
+            TextKind::Y2AxisLabels => bkg.strong.text,
             TextKind::Text => bkg.base.text,
         };
 
@@ -136,7 +137,8 @@ impl ChartText {
             TextKind::YTitle =>  ( Alignment::Center, Vertical::Top),
             TextKind::XAxisLabels => ( Alignment::Center, Vertical::Top ),
             TextKind::YAxisLabels => ( Alignment::Right, Vertical::Center ),
-            TextKind::Text => ( Alignment::Left, Vertical::Top ),
+            TextKind::Y2AxisLabels => ( Alignment::Left, Vertical::Center ),
+            TextKind::Text => ( Alignment::Left, Vertical::Center ),
         };
 
         canvas::Text { 
@@ -165,6 +167,7 @@ pub enum TextKind {
     YTitle,
     XAxisLabels,
     YAxisLabels,
+    Y2AxisLabels,
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash, Serialize, Deserialize)]

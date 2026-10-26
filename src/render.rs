@@ -352,8 +352,12 @@ fn draw_legend(ctx: &mut Ctx, entries: &[(String, iced::Color, Swatch)], pos: Le
                     if let Some(e) = entries.get(i) {
                         draw_swatch(ctx, e.2, x, yc, s, e.1);
                         let sx = swatch_w(e.2, s) + gap;
-                        let _t = ctx.fit(&e.0, size, (iw - sx).max(0.0) + 0.5);
-                        // ctx.text(x + sx, yc, &ct);
+                        let t = ctx.fit(&e.0, size, (iw - sx).max(0.0) + 0.5);
+                        let mut ct = ChartText::new(TextKind::Text);
+                        ct.content = t.to_string();
+                        ct.x = x + sx;
+                        ct.y = yc;
+                        ctx.text(ct.x, ct.y, ct);
                     }
                     x += iw + spacing;
                 }
@@ -372,8 +376,12 @@ fn draw_legend(ctx: &mut Ctx, entries: &[(String, iced::Color, Swatch)], pos: Le
                 let yc = y0 + i as f32 * row_h + row_h / 2.0;
                 draw_swatch(ctx, e.2, x0, yc, s, e.1);
                 let sx = swatch_w(e.2, s) + gap;
-                let _t = ctx.fit(&e.0, size, (colw - sx).max(0.0) + 0.5);
-                // ctx.text(x0 + sx, yc, &t, size, TEXT, HAlign::Left, VAlign::Middle);
+                let t = ctx.fit(&e.0, size, (colw - sx).max(0.0) + 0.5);
+                let mut ct = ChartText::new(TextKind::Text);
+                ct.content = t.to_string();
+                ct.x = x0 + sx;
+                ct.y = yc;
+                ctx.text(ct.x, ct.y, ct);
             }
             let used = colw + 8.0;
             if pos == LegendPos::Right { Bx { w: area.w - used, ..area } } else { Bx { x: area.x + used, w: area.w - used, ..area } }
@@ -429,9 +437,13 @@ fn frame(ctx: &mut Ctx, area: Bx, cat: CatAxis, y: &ValAxis, y2: Option<&ValAxis
             ctx.text(ct.x, ct.y, ct);
         }
         if let (Some(a), Some(l)) = (y2, &y2labels) {
-            for (v, _t) in l {
-                let _yy = plot.bottom() - a.scale.frac(*v) * plot.h;
-                // ctx.text(plot.right() + 4.0, yy, t, ls, TEXT, HAlign::Left, VAlign::Middle);
+            for (v, t) in l {
+                let yy = plot.bottom() - a.scale.frac(*v) * plot.h;
+                let mut ct = ChartText::new(TextKind::Y2AxisLabels);
+                ct.content = t.to_string();
+                ct.x = plot.right() + 4.0;
+                ct.y = yy;
+                ctx.text(ct.x, ct.y, ct);
             }
         }
         let zero = if y.scale.min <= 0.0 && y.scale.max >= 0.0 { 0.0 } else { y.scale.min };
