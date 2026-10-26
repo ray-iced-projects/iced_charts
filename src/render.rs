@@ -3,16 +3,19 @@
 use std::collections::HashSet;
 use std::f32::consts::TAU;
 
+use iced::alignment::Vertical;
+use iced::advanced::text::Alignment;
+
 use crate::model::features::{Chart, ChartKind, ChartText, LegendPos, LineDash, TextKind, TrendlineKind};
 use crate::model::style::ChartTheme;
 use crate::axis::{Fmt, Scale, clean, fixed_scale, nice_scale};
 use crate::resolve::{MAX_POINTS, MAX_SERIES, MAX_TRENDLINES, series_color};
 use crate::trend::{auto_name, fit_trendline, moving_average};
-use crate::{ChartData, HAlign, Measure, Prim, SeriesData, VAlign};
+use crate::{ChartData, Measure, Prim, SeriesData};
 
 pub(crate) const TEXT: iced::Color = iced::Color::from_packed_rgba8(0x595959, 1.0);
 const DARK_TEXT: iced::Color = iced::Color::from_packed_rgba8(0x262626, 1.0);
-const GRID: iced::Color = iced::Color::WHITE;//iced::Color::from_packed_rgba8(0xD9D9D9, 1.0);
+const GRID: iced::Color = iced::Color::from_packed_rgba8(0xD9D9D9, 1.0);
 const AXIS: iced::Color = iced::Color::from_packed_rgba8(0xBFBFBF, 1.0);
 const WHITE: iced::Color = iced::Color::WHITE;
 const STOCK: iced::Color = iced::Color::from_packed_rgba8(0x404040, 1.0);
@@ -460,10 +463,11 @@ fn frame(ctx: &mut Ctx, area: Bx, cat: CatAxis, y: &ValAxis, y2: Option<&ValAxis
                 let lw = l.iter().take(2000).map(|t| ctx.tw(t, ls)).fold(0.0f32, f32::max);
                 let k = (((lw + 6.0) / cw.max(1e-3)).ceil() as usize).clamp(1, n);
                 for (j, t) in l.iter().enumerate().step_by(k) {
-                    let _t = ctx.fit(t, ls, cw * k as f32 - 2.0);
+                    let t = ctx.fit(t, ls, cw * k as f32 - 2.0);
                     let mut ct = ChartText::new(TextKind::XAxisLabels);
                     ct.x = plot.x + (j as f32 + 0.5) * cw;
                     ct.y = plot.bottom() + 3.0;
+                    ct.content = t;
                     ctx.text(ct.x, ct.y, ct);
                 }
             }
@@ -504,13 +508,19 @@ fn frame(ctx: &mut Ctx, area: Bx, cat: CatAxis, y: &ValAxis, y2: Option<&ValAxis
         let vw = maxw(ctx, &ylabels);
         let slot = plot.w / ylabels.len().max(1) as f32;
         let k = (((vw + 6.0) / slot.max(1e-3)).ceil() as usize).max(1);
-        for (i, (v, _t)) in ylabels.iter().enumerate() {
+        for (i, (v, t)) in ylabels.iter().enumerate() {
             let xx = plot.x + y.scale.frac(*v) * plot.w;
             if grid {
-                ctx.vline(xx, plot.y, plot.bottom(), GRID, 0.75);
+                ctx.gline(xx, plot.y, plot.bottom(), 0.75);
             }
             if i % k == 0 {
-                // ctx.text(xx, plot.bottom() + 3.0, t, ls, TEXT, HAlign::Center, VAlign::Top);
+                let mut ct = ChartText::new(TextKind::Text);
+                ct.x = xx;
+                ct.y = plot.bottom() + 3.0;
+                ct.content = t.clone();
+                ct.align_x = Alignment::Center;
+                ct.align_y = Vertical::Top;
+                ctx.text(ct.x, ct.y, ct);
             }
         }
         let zero = if y.scale.min <= 0.0 && y.scale.max >= 0.0 { 0.0 } else { y.scale.min };
@@ -519,9 +529,15 @@ fn frame(ctx: &mut Ctx, area: Bx, cat: CatAxis, y: &ValAxis, y2: Option<&ValAxis
         let n = labels.len().max(1);
         let ch = plot.h / n as f32;
         let k = ((lh / ch.max(1e-3)).ceil() as usize).clamp(1, n);
-        for (_j, t) in labels.iter().enumerate().step_by(k) {
-            let _t = ctx.fit(t, ls, lw - 6.0);
-            // ctx.text(plot.x - 4.0, plot.bottom() - (j as f32 + 0.5) * ch, &t, ls, TEXT, HAlign::Right, VAlign::Middle);
+        for (j, t) in labels.iter().enumerate().step_by(k) {
+            let t = ctx.fit(t, ls, lw - 6.0);
+            let mut ct = ChartText::new(TextKind::Text);
+            ct.x = plot.x - 4.0;
+            ct.y = plot.bottom() - (j as f32 + 0.5) * ch;
+            ct.align_x = Alignment::Right;
+            ct.align_y = Vertical::Center;
+            ct.content = t;
+            ctx.text(ct.x, ct.y, ct);
         }
         plot
     }
@@ -812,8 +828,14 @@ fn draw_trend_labels(ctx: &mut Ctx, plot: Bx, labels: &[String]) {
         if y + lh > plot.bottom() {
             break;
         }
-        let _t = ctx.fit(t, LABEL_SIZE, plot.w - 8.0);
-        // ctx.text(plot.right() - 4.0, y, &t, LABEL_SIZE, TEXT, HAlign::Right, VAlign::Top);
+        let t = ctx.fit(t, LABEL_SIZE, plot.w - 8.0);
+        let mut ct = ChartText::new(TextKind::Text);
+        ct.x = plot.right() - 4.0;
+        ct.y = y;
+        ct.content = t;
+        ct.align_x = Alignment::Right;
+        ct.align_y = Vertical::Top;
+        ctx.text(ct.x, ct.y, ct);
     }
 }
 
@@ -1061,27 +1083,36 @@ fn cartesian(ctx: &mut Ctx, chart: &Chart, data: &ChartData, area: Bx, horizonta
                             let x = c - nslots * bw / 2.0 + k * bw;
                             ctx.rect(x, lo, bw, len, s.color, None);
                         }
+
+                        let mut ct = ChartText::new(TextKind::Text);
+                        
                         if labels_on && let Some(v) = s.values.get(j).copied().flatten() {
-                            let _t = fmt.format(v, None);
+                            ct.content = fmt.format(v, None);
                             let stacked = fam != Fam::Col;
-                            let _mid = (pb + pt) / 2.0;
+                            let mid = (pb + pt) / 2.0;
+                            ct.x = (pb + pt) / 2.0;
                             if horizontal {
-                                let _y = c + nslots * bw / 2.0 - (k + 0.5) * bw;
+                                ct.y = c + nslots * bw / 2.0 - (k + 0.5) * bw;
+                                ct.align_x = Alignment::Center;
+                                ct.align_y = Vertical::Center;
                                 if stacked {
-                                    // ctx.text(mid, y, &t, LABEL_SIZE, on(s.color), HAlign::Center, VAlign::Middle);
+                                    ctx.text(ct.x, ct.y, ct);
                                 } else if v >= 0.0 {
-                                    // ctx.text(pb.max(pt) + 3.0, y, &t, LABEL_SIZE, TEXT, HAlign::Left, VAlign::Middle);
+                                    ct.x = pb.max(pt) + 3.0;
+                                    ctx.text( ct.x, ct.y, ct);
                                 } else {
-                                    // ctx.text(lo - 3.0, y, &t, LABEL_SIZE, TEXT, HAlign::Right, VAlign::Middle);
+                                    ct.x = lo - 3.0;
+                                    ctx.text(ct.x, ct.y, ct);
                                 }
                             } else {
-                                let _x = c - nslots * bw / 2.0 + (k + 0.5) * bw;
+                                ct.x = c - nslots * bw / 2.0 + (k + 0.5) * bw;
                                 if stacked {
-                                    // ctx.text(x, mid, &t, LABEL_SIZE, on(s.color), HAlign::Center, VAlign::Middle);
+                                    ct.y = mid;
+                                    ctx.text(ct.x, ct.y, ct);
                                 } else if v >= 0.0 {
-                                    // ctx.text(x, lo - 2.0, &t, LABEL_SIZE, TEXT, HAlign::Center, VAlign::Bottom);
+                                    ctx.text(ct.x, lo - 2.0, ct);
                                 } else {
-                                    // ctx.text(x, lo + len + 2.0, &t, LABEL_SIZE, TEXT, HAlign::Center, VAlign::Top);
+                                    ctx.text(ct.x, lo + len + 2.0, ct);
                                 }
                             }
                         }
@@ -1096,17 +1127,29 @@ fn cartesian(ctx: &mut Ctx, chart: &Chart, data: &ChartData, area: Bx, horizonta
                     }
                     if labels_on {
                         for (j, p) in pts.iter().enumerate() {
-                            if let (Some(_p), Some(_v)) = (p, s.values.get(j).copied().flatten()) {
-                                // ctx.text(p[0], p[1] - 5.0, &fmt.format(v, None), LABEL_SIZE, TEXT, HAlign::Center, VAlign::Bottom);
+                            if let (Some(p ), Some(v)) = (p, s.values.get(j).copied().flatten()) {
+                                let mut ct = ChartText::new(TextKind::Text);
+                                ct.x = p[0];
+                                ct.y = p[1] - 5.0;
+                                ct.content = fmt.format(v, None);
+                                ctx.text(ct.x, ct.y, ct);
                             }
                         }
                     }
                 }
             }
         }
-        for (_x, _y, _t) in area_labels.drain(..) {
-            // ctx.text(x, y, &t, LABEL_SIZE, TEXT, HAlign::Center, VAlign::Bottom);
+        
+        for (x, y, t) in area_labels.drain(..) {
+            let mut ct = ChartText::new(TextKind::Text);
+            ct.x = x;
+            ct.y = y;
+            ct.content = t;
+            ct.align_x = Alignment::Center;
+            ct.align_y = Vertical::Bottom;
+            ctx.text(ct.x, ct.y, ct);
         }
+        
     }
     // Trendlines on top: x is the category number 1..n.
     let mut trend_labels = Vec::new();
@@ -1207,8 +1250,14 @@ fn scatter(ctx: &mut Ctx, chart: &Chart, data: &ChartData, area: Bx) {
         }
         if chart.data_labels && pts.len() <= MAX_LABELS {
             for (p, raw) in px.iter().zip(pts) {
-                if let (Some(_p), Some((_, _y))) = (p, raw) {
-                    // ctx.text(p[0], p[1] - 6.0, &fy.format(*y, None), LABEL_SIZE, TEXT, HAlign::Center, VAlign::Bottom);
+                if let (Some(p), Some((_, y))) = (p, raw) {
+                    let mut ct = ChartText::new(TextKind::Text);
+                    ct.x = p[0];
+                    ct.y = p[1] - 6.0;
+                    ct.content = fy.format(*y, None);
+                    ct.align_x = Alignment::Center;
+                    ct.align_y = Vertical::Bottom;
+                    ctx.text(ct.x, ct.y, ct);
                 }
             }
         }
@@ -1271,7 +1320,13 @@ fn histogram(ctx: &mut Ctx, chart: &Chart, data: &ChartData, area: Bx) {
         let x = plot.x + b as f32 * cw;
         ctx.rect(x, top, cw, plot.bottom() - top, s.color, Some((WHITE, 0.75)));
         if chart.data_labels {
-            // ctx.text(x + cw / 2.0, top - 2.0, &c.to_string(), LABEL_SIZE, TEXT, HAlign::Center, VAlign::Bottom);
+            let mut ct = ChartText::new(TextKind::Text);
+            ct.x = x + cw / 2.0;
+            ct.y = top - 2.0;
+            ct.content = c.to_string();
+            ct.align_x = Alignment::Center;
+            ct.align_y = Vertical::Bottom;
+            ctx.text(ct.x, ct.y, ct);
         }
     }
 }
@@ -1333,8 +1388,14 @@ fn waterfall(ctx: &mut Ctx, chart: &Chart, data: &ChartData, area: Bx) {
             ctx.out.push(Prim::Line { pts: vec![[x + bw, yt], [x + cw, yt]], color: AXIS, width: 0.75, dash: true });
         }
         if chart.data_labels && ncat <= MAX_LABELS {
-            let _v = if *kind == 0 { *t } else { t - b };
-            // ctx.text(x + bw / 2.0, yb.min(yt) - 2.0, &f.format(v, None), LABEL_SIZE, TEXT, HAlign::Center, VAlign::Bottom);
+            let v = if *kind == 0 { *t } else { t - b };
+            let mut ct = ChartText::new(TextKind::Text);
+            ct.x = x + bw / 2.0;
+            ct.y = yb.min(yt) - 2.0;
+            ct.content = f.format(v, None);
+            ct.align_x = Alignment::Center;
+            ct.align_y = Vertical::Bottom;
+            ctx.text(ct.x, ct.y, ct);
         }
     }
 }
@@ -1370,14 +1431,24 @@ fn funnel(ctx: &mut Ctx, chart: &Chart, data: &ChartData, area: Bx) {
             ctx.rect(x, y, bw, bh, s.color, None);
         }
         if show {
-            let _yc = y + bh / 2.0;
+            let yc = y + bh / 2.0;
             if chart.data_labels {
                 let t = f.format(s.values.get(j).copied().flatten().unwrap_or(0.0), None);
                 let _color = if ctx.tw(&t, LABEL_SIZE) + 4.0 <= bw { on(s.color) } else { TEXT };
-                // ctx.text(plot.cx(), yc, &t, LABEL_SIZE, color, HAlign::Center, VAlign::Middle);
+                let mut ct = ChartText::new(TextKind::Text);
+                ct.x = plot.cx();
+                ct.y = yc;
+                ct.align_x = Alignment::Center;
+                ct.align_y = Vertical::Center;
+                ctx.text(ct.x, ct.y, ct);
             }
             let _l = ctx.fit(labels.get(j).map(String::as_str).unwrap_or(""), LABEL_SIZE, lw - 8.0);
-            // ctx.text(plot.x - 6.0, yc, &l, LABEL_SIZE, TEXT, HAlign::Right, VAlign::Middle);
+            let mut ct = ChartText::new(TextKind::Text);
+            ct.x = plot.x - 6.0;
+            ct.y = yc;
+            ct.align_x = Alignment::Right;
+            ct.align_y = Vertical::Center;
+            ctx.text(ct.x, ct.y, ct);
         }
     }
 }
@@ -1417,8 +1488,14 @@ fn pie(ctx: &mut Ctx, chart: &Chart, data: &ChartData, area: Bx, inner: f32, nam
         }
         a += sweep;
     }
-    for (_x, _y, _t, _c) in labels {
-        // ctx.text(x, y, &t, LABEL_SIZE, c, HAlign::Center, VAlign::Middle);
+    for (x, y, t, _c) in labels {
+        let mut ct = ChartText::new(TextKind::Text);
+        ct.x = x;
+        ct.y = y;
+        ct.content = t;
+        ct.align_x = Alignment::Center;
+        ct.align_y = Vertical::Center;
+        ctx.text(x, y, ct);
     }
 }
 
@@ -1505,11 +1582,20 @@ fn treemap(ctx: &mut Ctx, chart: &Chart, data: &ChartData, area: Bx) {
         ctx.rect(b.x, b.y, b.w, b.h, fill, Some((WHITE, 1.5)));
         if b.w > 24.0 && b.h > LABEL_SIZE * 1.6 {
             let _name = ctx.fit(&cat_label(data, j), LABEL_SIZE, b.w - 8.0);
-            // ctx.text(b.x + 4.0, b.y + 4.0, &name, LABEL_SIZE, on(fill), HAlign::Left, VAlign::Top);
+            let mut ct = ChartText::new(TextKind::Text);
+            ct.x = b.x + 4.0;
+            ct.y = b.y + 4.0;
+            ctx.text(ct.x, ct.y, ct); // HAlign::Left, VAlign::Top);
             if chart.data_labels && b.h > LABEL_SIZE * 3.2 {
                 let v = items.iter().find(|x| x.0 == j).map(|x| x.1).unwrap_or(0.0);
-                let _t = ctx.fit(&f.format(v, None), LABEL_SIZE, b.w - 8.0);
-                // ctx.text(b.x + 4.0, b.y + 4.0 + LABEL_SIZE * 1.4, &t, LABEL_SIZE, on(fill), HAlign::Left, VAlign::Top);
+                let t = ctx.fit(&f.format(v, None), LABEL_SIZE, b.w - 8.0);
+                let mut ct = ChartText::new(TextKind::Text);
+                ct.x = b.x + 4.0;
+                ct.y = b.y + 4.0 + ct.size * 1.4;
+                ct.content = t;
+                ct.align_x = Alignment::Left;
+                ct.align_y = Vertical::Top;
+                ctx.text(ct.x, ct.y, ct);
             }
         }
     }
@@ -1531,7 +1617,7 @@ fn radar(ctx: &mut Ctx, chart: &Chart, data: &ChartData, area: Bx) {
     let (cx, cy) = (area.cx(), area.cy());
     let (lo, hi) = value_range(data.series.iter().flat_map(|s| s.values.iter().flatten().copied())).unwrap_or((0.0, 0.0));
     let sc = nice_scale(lo, hi, true);
-    let _f = Fmt::new(data.series.first().map(|s| s.number_format.as_str()).unwrap_or("General"));
+    let f = Fmt::new(data.series.first().map(|s| s.number_format.as_str()).unwrap_or("General"));
     let ang = |j: usize| j as f32 / ncat as f32 * TAU;
     let pt = |a: f32, rr: f32| [cx + rr * a.sin(), cy - rr * a.cos()];
     let ticks = sc.ticks();
@@ -1549,31 +1635,44 @@ fn radar(ctx: &mut Ctx, chart: &Chart, data: &ChartData, area: Bx) {
             ctx.line(ring, GRID, 0.75);
         }
         if ti % every == 0 {
-            // ctx.text(cx - 3.0, cy - rr, &f.format(t, Some(sc.step)), LABEL_SIZE * 0.9, TEXT, HAlign::Right, VAlign::Middle);
+            let mut ct = ChartText::new(TextKind::Text);
+            ct.x = cx - 3.0;
+            ct.y = cy - rr;
+            ct.size = ct.size * 0.9;
+            ct.content = f.format(t, Some(sc.step));
+            ct.align_x = Alignment::Right;
+            ct.align_y = Vertical::Bottom;
+            ctx.text(ct.x, ct.y, ct);
         }
     }
     let step = ncat.div_ceil(72).max(1);
     for j in (0..ncat).step_by(step) {
         let a = ang(j);
         ctx.line(vec![[cx, cy], pt(a, r)], GRID, 0.75);
-        let _p = pt(a, r + 6.0);
+        let p = pt(a, r + 6.0);
         let (sa, ca) = (a.sin(), a.cos());
-        let _align = if sa > 0.1 {
-            HAlign::Left
+        let align = if sa > 0.1 {
+            Alignment::Left
         } else if sa < -0.1 {
-            HAlign::Right
+            Alignment::Right
         } else {
-            HAlign::Center
+            Alignment::Center
         };
-        let _valign = if ca > 0.1 {
-            VAlign::Bottom
+        let valign = if ca > 0.1 {
+            Vertical::Bottom
         } else if ca < -0.1 {
-            VAlign::Top
+            Vertical::Top
         } else {
-            VAlign::Middle
+            Vertical::Center
         };
-        let _t = ctx.fit(labels.get(j).map(String::as_str).unwrap_or(""), LABEL_SIZE, lw.max(20.0));
-        // ctx.text(p[0], p[1], &t, LABEL_SIZE, TEXT, align, valign);
+        let t = ctx.fit(labels.get(j).map(String::as_str).unwrap_or(""), LABEL_SIZE, lw.max(20.0));
+        let mut ct = ChartText::new(TextKind::Text);
+        ct.x = p[0];
+        ct.y = p[1];
+        ct.align_x = align;
+        ct.align_y = valign;
+        ct.content = t;
+        ctx.text(ct.x, ct.y, ct);
     }
     for s in &data.series {
         let mut pts: Vec<[f32; 2]> = (0..ncat).map(|j| pt(ang(j), sc.frac(s.values.get(j).copied().flatten().unwrap_or(sc.min)) * r)).collect();

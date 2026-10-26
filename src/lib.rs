@@ -425,6 +425,7 @@ fn draw_prim(frame: &mut Frame, prim: &Prim, theme: &Theme) {
                 if ct.rotation != 0.0 {
                     f.rotate(Radians(ct.rotation));
                 }
+                
                 f.fill_text(ct.clone().to_iced(theme, ct.text_kind));
             });
         },

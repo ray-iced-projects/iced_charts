@@ -10,10 +10,6 @@ default = ["canvas"]
 canvas = []
 
 # [[example]]
-# name = "line"
-# path = "examples/line/src/main.rs"
-
-# [[example]]
 # name = "column_clustered"
 # path = "examples/column_clustered/src/main.rs"
 
@@ -37,6 +33,10 @@ canvas = []
 # name = "bar_stacked_100"
 # path = "examples/bar_stacked_100/src/main.rs"
 
+[[example]]
+name = "line"
+path = "examples/line/src/main.rs"
+
 # [[example]]
 # name = "line_markers"
 # path = "examples/line_markers/src/main.rs"
@@ -45,9 +45,9 @@ canvas = []
 # name = "line_stacked"
 # path = "examples/line_stacked/src/main.rs"
 
-# [[example]]
-# name = "pie"
-# path = "examples/pie/src/main.rs"
+[[example]]
+name = "pie"
+path = "examples/pie/src/main.rs"
 
 # [[example]]
 # name = "doughnut"
@@ -61,28 +61,29 @@ canvas = []
 # name = "area_stacked"
 # path = "examples/area_stacked/src/main.rs"
 
-# [[example]]
-# name = "scatter"
-# path = "examples/scatter_charts/scatter/src/main.rs"
+[[example]]
+name = "scatter"
+path = "examples/scatter_charts/scatter/src/main.rs"
 
-# [[example]]
-# name = "scatter_lines"
-# path = "examples/scatter_charts/scatter_lines/src/main.rs"
+[[example]]
+name = "scatter_lines"
+path = "examples/scatter_charts/scatter_lines/src/main.rs"
 
-# [[example]]
-# name = "scatter_with_moving_average"
-# path = "examples/scatter_charts/scatter_with_moving_average/src/main.rs"
+[[example]]
+name = "scatter_with_moving_average"
+path = "examples/scatter_charts/scatter_with_moving_average/src/main.rs"
 
 [[example]]
 name = "scatter_with_linear_trend"
 path = "examples/scatter_charts/scatter_with_linear_trend/src/main.rs"
 
+[[example]]
+name = "radar"
+path = "examples/radar/src/main.rs"
+
 # [[example]]
 # name = "bubble"
 # path = "examples/bubble/src/main.rs"
-
-# [[example]]
-# name = "radar"
 # path = "examples/radar/src/main.rs"
 
 # [[example]]

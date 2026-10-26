@@ -130,7 +130,7 @@ impl ChartText {
             TextKind::XAxisLabels => bkg.strong.text,
             TextKind::YAxisLabels => bkg.strong.text,
             TextKind::Y2AxisLabels => bkg.strong.text,
-            TextKind::Text => bkg.base.text,
+            TextKind::Text => bkg.strong.text,
         };
 
         let (align_x, align_y) = match kind {

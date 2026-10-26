@@ -6,4 +6,5 @@ edition = "2024"
 
 [dependencies]
 iced = { git = "https://github.com/iced-rs/iced.git", branch = "master", features=["debug", "advanced", "canvas", "tokio"]}
+iced_charts = { path = "../../" }
 serde_json = "1.0.154"
