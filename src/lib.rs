@@ -134,6 +134,10 @@ pub enum Prim {
         fill: Option<iced::Color>,
         stroke: Option<(iced::Color, f32)>,
     },
+    Grid {
+        pts: Vec<[f32; 2]>,
+        width: f32,
+    },
     Text(ChartText),
 }
 
@@ -322,6 +326,23 @@ fn draw_prim(frame: &mut Frame, prim: &Prim, theme: &Theme) {
             frame.stroke(
                 &path,
                 Stroke::default().with_color(*color).with_width(*width),
+            );
+        }
+        Prim::Grid { pts, width } => {
+            let path = Path::new(|b| {
+                if let Some(first) = pts.first() {
+                    b.move_to(Point::new(first[0], first[1]));
+                    for pt in pts.iter().skip(1) {
+                        b.line_to(Point::new(pt[0], pt[1]));
+                    }
+                }
+            });
+            let bkg = theme.palette().background;
+            let color = bkg.weak.text.scale_alpha(0.5);
+
+            frame.stroke(
+                &path,
+                Stroke::default().with_color(color).with_width(*width),
             );
         }
         Prim::Polygon { pts, fill, stroke } => {

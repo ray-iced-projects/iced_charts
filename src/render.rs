@@ -104,6 +104,10 @@ impl Ctx<'_> {
     fn vline(&mut self, x: f32, y0: f32, y1: f32, color: iced::Color, width: f32) {
         self.line(vec![[x, y0], [x, y1]], color, width);
     }
+    fn gline(&mut self, x0: f32, x1: f32, y: f32, width: f32) {
+        let pts = vec![[x0, y], [x1, y]];
+        self.out.push(Prim::Grid { pts, width });
+    }
 }
 
 /// Text colour readable on `fill`.
@@ -428,7 +432,7 @@ fn frame(ctx: &mut Ctx, area: Bx, cat: CatAxis, y: &ValAxis, y2: Option<&ValAxis
         for (v, t) in &ylabels {
             let yy = plot.bottom() - y.scale.frac(*v) * plot.h;
             if grid {
-                ctx.hline(plot.x, plot.right(), yy, GRID, 0.75);
+                ctx.gline(plot.x, plot.right(), yy, 0.75);
             }
             let mut ct = ChartText::new(TextKind::YAxisLabels);
             ct.content = t.to_string();
@@ -1754,6 +1758,9 @@ pub(crate) fn finalize(prims: Vec<Prim>, w: f32, h: f32) -> Vec<Prim> {
                     return None;
                 }
                 Some(Prim::Circle { cx: x, cy: y, r, fill, stroke: clamp_stroke(stroke) })
+            },
+            Prim::Grid { pts, width } => {
+                Some(Prim::Grid { pts, width })
             },
             Prim::Text(ct) => {
                 if ct.content.is_empty() {
