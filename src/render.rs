@@ -87,14 +87,8 @@ impl Ctx<'_> {
         let mut ct = ct.clone();
         ct.x = x;
         ct.y = y;
-        match ct.text_kind {
-            TextKind::Title => self.out.push(Prim::TitleText(ct)),
-            TextKind::XAxis => self.out.push(Prim::XText(ct)),
-            TextKind::YAxis => self.out.push(Prim::YText(ct)),
-            TextKind::AxisLabels => self.out.push(Prim::LabelText(ct)),
-            _ => return,
-        }
-
+        
+        self.out.push(Prim::Text(ct));
     }
     fn rect(&mut self, x: f32, y: f32, w: f32, h: f32, fill: iced::Color, stroke: Option<(iced::Color, f32)>) {
         self.out.push(Prim::Rect { x, y, w, h, fill: Some(fill), stroke, radius: 0.0 });
@@ -283,9 +277,9 @@ fn axis_titles(ctx: &mut Ctx, chart: &Chart, mut area: Bx) -> Bx {
     if let Some(ct) = &chart.x_title {
         let lh = ct.size * 1.4 + 2.0;
         let mut ct = ct.clone();
-        ct.x = area.x + (area.w / 2.0);
+        ct.x = area.x + (area.w / 2.0) + 20.0;
         ct.y = area.y + area.h - lh;
-        ctx.out.push(Prim::XText(ct));
+        ctx.out.push(Prim::Text(ct));
         area.h -= lh;
     };
 
@@ -293,13 +287,15 @@ fn axis_titles(ctx: &mut Ctx, chart: &Chart, mut area: Bx) -> Bx {
         let lh = ct.size * 1.4 + 2.0;
         let mut ct = ct.clone();
         ct.x = area.x + ct.line_height * ct.size;
-        ct.y = area.y + (area.h / 2.0) - lh;
-        ctx.out.push(Prim::YText(ct.clone()));
+        ct.y = area.y + (area.h / 2.0);
+        ctx.out.push(Prim::Text(ct.clone()));
         area.x += lh;
+        area.w -= lh;
     };
 
     area
 }
+
 
 // legend
 fn swatch_w(sw: Swatch, s: f32) -> f32 {
@@ -421,12 +417,16 @@ fn frame(ctx: &mut Ctx, area: Bx, cat: CatAxis, y: &ValAxis, y2: Option<&ValAxis
         if !plot.ok() {
             return plot;
         }
-        for (v, _t) in &ylabels {
+        for (v, t) in &ylabels {
             let yy = plot.bottom() - y.scale.frac(*v) * plot.h;
             if grid {
                 ctx.hline(plot.x, plot.right(), yy, GRID, 0.75);
             }
-            // ctx.text(plot.x - 4.0, yy, t, ls, TEXT, HAlign::Right, VAlign::Middle);
+            let mut ct = ChartText::new(TextKind::YAxisLabels);
+            ct.content = t.to_string();
+            ct.x = plot.x - 4.0;
+            ct.y = yy;
+            ctx.text(ct.x, ct.y, ct);
         }
         if let (Some(a), Some(l)) = (y2, &y2labels) {
             for (v, _t) in l {
@@ -445,7 +445,7 @@ fn frame(ctx: &mut Ctx, area: Bx, cat: CatAxis, y: &ValAxis, y2: Option<&ValAxis
                 let k = (((lw + 6.0) / cw.max(1e-3)).ceil() as usize).clamp(1, n);
                 for (j, t) in l.iter().enumerate().step_by(k) {
                     let _t = ctx.fit(t, ls, cw * k as f32 - 2.0);
-                    let mut ct = ChartText::new(TextKind::AxisLabels);
+                    let mut ct = ChartText::new(TextKind::XAxisLabels);
                     ct.x = plot.x + (j as f32 + 0.5) * cw;
                     ct.y = plot.bottom() + 3.0;
                     ctx.text(ct.x, ct.y, ct);
@@ -459,12 +459,13 @@ fn frame(ctx: &mut Ctx, area: Bx, cat: CatAxis, y: &ValAxis, y2: Option<&ValAxis
                 let k = (((lw + 6.0) / slot.max(1e-3)).ceil() as usize).max(1);
                 for (v, t) in ticks.iter().zip(&labels).step_by(k) {
                     let xx = plot.x + s.frac(*v) * plot.w;
-                    let mut ct = ChartText::new(TextKind::AxisLabels);
+                    let mut ct = ChartText::new(TextKind::XAxisLabels);
                     ct.content = t.clone();
                     ct.x = xx;
                     ct.y = plot.bottom() + 3.0;
+                    ct.size = 12.0;
 
-                    ctx.text(ct.x, ct.y, ct); //HAlign::Center, VAlign::Top);
+                    ctx.text(ct.x, ct.y, ct);
                 }
                 if s.min <= 0.0 && s.max >= 0.0 {
                     let xx = plot.x + s.frac(0.0) * plot.w;
@@ -1742,16 +1743,12 @@ pub(crate) fn finalize(prims: Vec<Prim>, w: f32, h: f32) -> Vec<Prim> {
                 }
                 Some(Prim::Circle { cx: x, cy: y, r, fill, stroke: clamp_stroke(stroke) })
             },
-            Prim::LabelText(ct) => Some(Prim::LabelText(ct)),
             Prim::Text(ct) => {
                 if ct.content.is_empty() {
                     return None;
                 }
                 Some(Prim::Text(ct))
             },
-            Prim::TitleText(ct) => Some(Prim::TitleText(ct)),
-            Prim::XText(ct) => Some(Prim::XText(ct)),
-            Prim::YText(ct) => Some(Prim::YText(ct)),
         })
         .collect()
 }

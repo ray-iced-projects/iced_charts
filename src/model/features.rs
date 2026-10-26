@@ -1,12 +1,12 @@
 
-use iced::{Color, Font, Pixels, Point, alignment, widget::{canvas, text::{Ellipsis, LineHeight, Shaping, Wrapping}}};
+use std::f32::consts::PI;
+
+use iced::{Color, Font, Pixels, Point, alignment::{self, Vertical}, widget::{canvas, text::{Ellipsis, LineHeight, Shaping, Wrapping}}};
 use iced::advanced::text::Alignment;
 use serde::{Deserialize, Serialize};
 
 
-const TITLE_SIZE: f32 = 14.0;
-const LABEL_SIZE: f32 = 9.0;
-const AXIS_TITLE_SIZE: f32 = 10.0;
+const _AXIS_TITLE_SIZE: f32 = 10.0;
 
 #[derive(Clone, Debug, Default)]
 pub struct Chart {
@@ -90,12 +90,14 @@ pub struct ChartText {
 
 impl ChartText {
     pub fn new(kind: TextKind) -> ChartText {
-        let size = match kind {
-            TextKind::Title => TITLE_SIZE,
-            TextKind::XAxis => AXIS_TITLE_SIZE,
-            TextKind::YAxis => AXIS_TITLE_SIZE,
-            TextKind::AxisLabels => LABEL_SIZE,
-            _ => 10.0
+        let (size, rotation) = match kind {
+            TextKind::Title => (16.0, 0.0),
+            TextKind::XTitle => (12.0, 0.0),
+            TextKind::YTitle => (12.0, PI/2.0),
+            TextKind::XAxisLabels => (12.0, 0.0),
+            TextKind::YAxisLabels => (12.0, 0.0),
+            _ => (10.0, 0.0)
+
         };
         ChartText {
             x: 0.0,
@@ -109,11 +111,11 @@ impl ChartText {
             line_height: 1.2,
             font: Font::default(),
             align_x: Alignment::Default,
-            align_y: alignment::Vertical::Top,
+            align_y: Vertical::Top,
             shaping: Shaping::default(),
             wrapping: Wrapping::default(),
             ellipsis: Ellipsis::default(),
-            rotation: 0.0,
+            rotation,
         }
     }
 
@@ -121,10 +123,20 @@ impl ChartText {
         let bkg = theme.palette().background;
         let color = match kind {
             TextKind::Title => bkg.strongest.text,
-            TextKind::XAxis => bkg.strong.text,
-            TextKind::YAxis => bkg.strong.text,
+            TextKind::XTitle => bkg.strongest.text,
+            TextKind::YTitle => bkg.strongest.text,
+            TextKind::XAxisLabels => bkg.strong.text,
+            TextKind::YAxisLabels => bkg.strong.text,
             TextKind::Text => bkg.base.text,
-            TextKind::AxisLabels => bkg.strong.text,
+        };
+
+        let (align_x, align_y) = match kind {
+            TextKind::Title => ( Alignment::Left, Vertical::Top ),
+            TextKind::XTitle => ( Alignment::Center, Vertical::Top),
+            TextKind::YTitle =>  ( Alignment::Center, Vertical::Top),
+            TextKind::XAxisLabels => ( Alignment::Center, Vertical::Top ),
+            TextKind::YAxisLabels => ( Alignment::Right, Vertical::Center ),
+            TextKind::Text => ( Alignment::Left, Vertical::Top ),
         };
 
         canvas::Text { 
@@ -135,8 +147,8 @@ impl ChartText {
             size: Pixels(self.size), 
             line_height: LineHeight::Relative(self.line_height), 
             font: self.font, 
-            align_x: self.align_x, 
-            align_y: self.align_y, 
+            align_x, 
+            align_y, 
             shaping: self.shaping, 
             wrapping: self.wrapping, 
             ellipsis: self.ellipsis 
@@ -146,12 +158,13 @@ impl ChartText {
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum TextKind {
-    AxisLabels,
     #[default]
     Text,
     Title,
-    XAxis,
-    YAxis,
+    XTitle,
+    YTitle,
+    XAxisLabels,
+    YAxisLabels,
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash, Serialize, Deserialize)]

@@ -2,7 +2,7 @@
 use iced::mouse;
 use iced::widget::canvas::{self, Canvas, Frame, Geometry, Path, Stroke};
 use iced::{
-    Fill, Point, Radians, Rectangle, Renderer, Size, Theme,
+    Point, Radians, Rectangle, Renderer, Size, Theme,
     Vector, Widget,
 };
 
@@ -22,7 +22,7 @@ use serde::{Deserialize, Serialize};
 pub use axis::{Scale, format_number, nice_scale};
 pub use render::render;
 
-use crate::model::features::{ChartText, TextKind};
+use crate::model::features::ChartText;
 
 mod color_serde {
     use serde::{Deserialize, Deserializer};
@@ -135,12 +135,7 @@ pub enum Prim {
         fill: Option<iced::Color>,
         stroke: Option<(iced::Color, f32)>,
     },
-    /// Text anchored at `(x, y)` per `align`/`valign`, rotated by `rotation` radians about the anchor.
     Text(ChartText),
-    LabelText(ChartText),
-    TitleText(ChartText),
-    YText(ChartText),
-    XText(ChartText),
 }
 
 /// Measures text width (the UI passes real font metrics; tests use a fixed-width approximation).
@@ -229,8 +224,8 @@ impl State {
 
     pub fn view<'a>(&'a self) -> impl Widget<()> {
         Canvas::new(Grid { state: self })
-            .width(Fill)
-            .height(Fill)
+            .width(800.0)
+            .height(800.0)
     }
 
     pub fn request_redraw(&mut self) {
@@ -406,50 +401,13 @@ fn draw_prim(frame: &mut Frame, prim: &Prim, theme: &Theme) {
         Prim::Text(ct) => {
             frame.with_save(|f| {
                 f.translate(Vector::new(ct.x, ct.y));
-                if ct.rotation != 0.0 {
-                    f.rotate(Radians(ct.rotation));
-                }
-                f.fill_text(ct.clone().to_iced(theme, TextKind::Text));
-            });
-        },
-        Prim::LabelText(ct) => {
-
-            frame.with_save(|f| {
-                f.translate(Vector::new(ct.x, ct.y));
-                if ct.rotation != 0.0 {
-                    f.rotate(Radians(ct.rotation));
-                }
-                f.fill_text(ct.clone().to_iced(theme, TextKind::AxisLabels));
-            });
-        }, 
-        Prim::TitleText(ct) => {
-            frame.with_save(|f| {
-                f.translate(Vector::new(ct.x, ct.y));
                 
                 if ct.rotation != 0.0 {
                     f.rotate(Radians(ct.rotation));
                 }
-                f.fill_text(ct.clone().to_iced(theme, TextKind::Title));
+                f.fill_text(ct.clone().to_iced(theme, ct.text_kind));
             });
         },
-        Prim::XText(ct) => {
-            frame.with_save(|f| {
-                f.translate(Vector::new(ct.x, ct.y));
-                if ct.rotation != 0.0 {
-                    f.rotate(Radians(ct.rotation));
-                }
-                f.fill_text(ct.clone().to_iced(theme, TextKind::XAxis));
-            });
-        },
-        Prim::YText(ct) => {
-            frame.with_save(|f| {
-                f.translate(Vector::new(ct.x, ct.y));
-                if ct.rotation != 0.0 {
-                    f.rotate(Radians(ct.rotation));
-                }
-                f.fill_text(ct.clone().to_iced(theme, TextKind::YAxis));
-            });
-        }
     }
 }
 

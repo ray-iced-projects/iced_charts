@@ -1,4 +1,3 @@
-use std::f32::consts::PI;
 
 use iced::widget::{PickList, container, row};
 use iced::{Theme, Widget};
@@ -8,9 +7,7 @@ use iced_charts::resolve::series_color;
 use iced_charts::model::style::ChartTheme as ChartTheme;
 use iced_charts::model::series_colors::{theme_strings, str_to_theme};
 
-const TITLE_SIZE: f32 = 16.0;
 const _LABEL_SIZE: f32 = 10.0;
-const AXIS_TITLE_SIZE: f32 = 12.0;
 
 
 pub fn main() -> iced::Result {
@@ -30,22 +27,12 @@ impl Default for Example {
 
         let mut title = ChartText::new(TextKind::Title);
         title.content = "Website Traffic with Moving Average Trend".into();
-        title.size = TITLE_SIZE;
 
-        let mut x_title = ChartText::new(TextKind::XAxis);
+        let mut x_title = ChartText::new(TextKind::XTitle);
         x_title.content = "Days".into();
-        x_title.size = AXIS_TITLE_SIZE;
         
-        let mut y_title = ChartText::new(TextKind::YAxis);
+        let mut y_title = ChartText::new(TextKind::YTitle);
         y_title.content = "Dailey Visitors".into();
-        y_title.rotation = PI/2.0;
-        y_title.size = AXIS_TITLE_SIZE;
-        
-        let selected_theme = Theme::TokyoNight;
-        let bkg = selected_theme.palette().background;
-        title.color = bkg.strongest.text;
-        x_title.color = bkg.strong.text;
-        y_title.color = bkg.strong.text;
         
         let chart = 
             Chart::new(
