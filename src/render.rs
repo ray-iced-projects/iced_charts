@@ -230,7 +230,6 @@ pub fn render(chart: &Chart, data: &ChartData, w: f32, h: f32, m: &dyn Measure) 
     }
     let data = sanitize(data);
     let mut ctx = Ctx { out: Vec::new(), m };
-    ctx.out.push(Prim::Rect { x: 0.0, y: 0.0, w, h, fill: Some(iced::Color::TRANSPARENT), stroke: Some((GRID, 1.0)), radius: 0.0 });
     let pad = (w.min(h) * 0.04).clamp(2.0, 10.0);
     let mut area = Bx { x: pad, y: pad, w: w - 2.0 * pad, h: h - 2.0 * pad };
     
@@ -785,7 +784,7 @@ fn draw_trendlines(
     pts: &[(f64, f64)],
     frac: &dyn Fn(f64, f64) -> (f64, f64),
     px: &dyn Fn((f64, f64)) -> [f32; 2],
-    labels: &mut Vec<String>,
+    labels: &mut Vec<(String, f32)>,
 ) {
     let Some((xlo, xhi)) = value_range(pts.iter().map(|p| p.0)) else { return };
     for t in s.trendlines.iter().take(MAX_TRENDLINES) {
@@ -796,10 +795,10 @@ fn draw_trendlines(
                 let Some(fit) = fit_trendline(spec, pts) else { continue };
                 let (lo, hi) = (xlo - forecast(spec.backward), xhi + forecast(spec.forward));
                 if spec.display_equation {
-                    labels.push(fit.equation());
+                    labels.push((fit.equation(), spec.label_size));
                 }
                 if spec.display_r_squared {
-                    labels.push(fit.r_squared());
+                    labels.push((fit.r_squared(), spec.label_size));
                 }
                 (0..=TREND_STEPS)
                     .map(|i| {
@@ -821,23 +820,53 @@ fn draw_trendlines(
 }
 
 /// Trendline equation / R² labels, stacked in the plot's top-right corner.
-fn draw_trend_labels(ctx: &mut Ctx, plot: Bx, labels: &[String]) {
-    let lh = LABEL_SIZE * 1.3;
-    for (i, t) in labels.iter().enumerate() {
-        let y = plot.y + 4.0 + i as f32 * lh;
+fn draw_trend_labels(ctx: &mut Ctx, plot: Bx, labels: &[(String, f32)]) {
+    if labels.is_empty() {
+        return;
+    }
+    
+    // Use the size from the first label (all should have similar sizing)
+    let size = labels[0].1;
+    let lh = size * 1.3;
+    
+    // Find the widest label
+    let mut max_width: f32 = 0.0;
+    let fitted_labels: Vec<_> = labels.iter().map(|(t, s)| ctx.fit(t, *s, plot.w - 8.0)).collect();
+    for t in &fitted_labels {
+        let width = ctx.m.text_width(t, size, false);
+        max_width = max_width.max(width);
+    }
+    
+    // Add padding and calculate x position from the right
+    let padding = 8.0;
+    let label_x = plot.right() - padding - max_width;
+    
+    // Draw labels
+    for (i, t) in fitted_labels.iter().enumerate() {
+        let y = plot.y + 14.0 + i as f32 * lh;
         if y + lh > plot.bottom() {
             break;
         }
-        let t = ctx.fit(t, LABEL_SIZE, plot.w - 8.0);
         let mut ct = ChartText::new(TextKind::Text);
-        ct.x = plot.right() - 4.0;
-        ct.y = y;
-        ct.content = t;
-        ct.align_x = Alignment::Right;
+        ct.content = t.clone();
+        ct.align_x = Alignment::Left;
         ct.align_y = Vertical::Top;
-        ctx.text(ct.x, ct.y, ct);
+        ct.size = size;
+        ctx.text(label_x, y, ct);
     }
 }
+
+// fn draw_trend_labels(ctx: &mut Ctx, plot: Bx, labels: &[String]) {
+//     let lh = LABEL_SIZE * 1.3;
+//     for (i, t) in labels.iter().enumerate() {
+//         let y = plot.y + 4.0 + i as f32 * lh;
+//         if y + lh > plot.bottom() {
+//             break;
+//         }
+//         let t = ctx.fit(t, LABEL_SIZE, plot.w - 8.0);
+//         ctx.text(plot.right() - 4.0, y, &t, LABEL_SIZE, TEXT, HAlign::Right, VAlign::Top);
+//     }
+// }
 
 // ---------------------------------------------------------------- cartesian (column/bar/line/area/combo)
 

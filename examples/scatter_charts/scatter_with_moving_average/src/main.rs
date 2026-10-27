@@ -76,6 +76,7 @@ impl Default for Example {
                                 color: None,
                                 width: Some(2.5),
                                 dash: None,
+                                label_size: 12.0,
                             },
                             color: iced::Color::from_rgba8(0xFF, 0x80, 0x00, 1.0),  // Orange for the trendline
                         }

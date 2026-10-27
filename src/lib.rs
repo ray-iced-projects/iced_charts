@@ -252,6 +252,18 @@ impl <Message>canvas::Program<Message> for Grid<'_> {
         _cursor: mouse::Cursor,
     ) -> Vec<Geometry> {
         let content = self.state.cache.draw(renderer, bounds.size(), |frame| {
+            // Draw the canvas border first using the theme's text color
+            let border_color = theme.palette().background.weak.text;
+            frame.stroke(
+                &Path::rectangle(
+                    Point::new(0.0, 0.0),
+                    Size::new(bounds.width, bounds.height),
+                ),
+                Stroke::default()
+                    .with_color(border_color)
+                    .with_width(1.0),
+            );
+
             let prims = render(
                 &self.state.chart,
                 &self.state.data,
@@ -338,7 +350,7 @@ fn draw_prim(frame: &mut Frame, prim: &Prim, theme: &Theme) {
                 }
             });
             let bkg = theme.palette().background;
-            let color = bkg.weak.text.scale_alpha(0.5);
+            let color = bkg.weak.text.scale_alpha(0.8);
 
             frame.stroke(
                 &path,

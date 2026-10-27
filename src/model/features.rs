@@ -294,4 +294,11 @@ pub struct Trendline {
     pub width: Option<f32>,
     /// Line dash; `None` = default.
     pub dash: Option<LineDash>,
+    /// Label size in points; defaults to 12.0.
+    #[serde(default = "default_label_size")]
+    pub label_size: f32,
+}
+
+fn default_label_size() -> f32 {
+    12.0
 }
