@@ -512,7 +512,8 @@ fn frame(ctx: &mut Ctx, area: Bx, cat: CatAxis, y: &ValAxis, y2: Option<&ValAxis
         for (i, (v, t)) in ylabels.iter().enumerate() {
             let xx = plot.x + y.scale.frac(*v) * plot.w;
             if grid {
-                ctx.gline(xx, plot.y, plot.bottom(), 0.75);
+                // Value gridlines are vertical on a horizontal bar chart.
+                ctx.out.push(Prim::Grid { pts: vec![[xx, plot.y], [xx, plot.bottom()]], width: 0.75 });
             }
             if i % k == 0 {
                 let mut ct = ChartText::new(TextKind::Text);
