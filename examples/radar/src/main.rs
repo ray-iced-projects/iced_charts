@@ -30,7 +30,9 @@ impl Default for Example {
                 1,
                 ChartKind::Radar,
             )
-            .title(title);
+            .title(title)
+            .label_size(12.0);
+
         let theme = ChartTheme::default();
 
         let data = ChartData {

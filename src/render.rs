@@ -23,7 +23,7 @@ pub(crate) const UP: iced::Color = iced::Color::from_packed_rgba8(0x3E9B5F, 1.0)
 pub(crate) const DOWN: iced::Color = iced::Color::from_packed_rgba8(0xD64F45, 1.0);
 
 
-const LABEL_SIZE: f32 = 9.0;
+const LABEL_SIZE: f32 = 10.0;
 
 /// Most categories drawn by category-axis charts.
 const MAX_CATS: usize = 20_000;
@@ -283,7 +283,7 @@ fn axis_titles(ctx: &mut Ctx, chart: &Chart, mut area: Bx) -> Bx {
     if let Some(ct) = &chart.x_title {
         let lh = ct.size * 1.4 + 2.0;
         let mut ct = ct.clone();
-        ct.x = area.x + (area.w / 2.0) + 20.0;
+        ct.x = area.center_x() + 20.0;
         ct.y = area.y + area.h - lh;
         ctx.out.push(Prim::Text(ct));
         area.h -= lh;
@@ -856,19 +856,7 @@ fn draw_trend_labels(ctx: &mut Ctx, plot: Bx, labels: &[(String, f32)]) {
     }
 }
 
-// fn draw_trend_labels(ctx: &mut Ctx, plot: Bx, labels: &[String]) {
-//     let lh = LABEL_SIZE * 1.3;
-//     for (i, t) in labels.iter().enumerate() {
-//         let y = plot.y + 4.0 + i as f32 * lh;
-//         if y + lh > plot.bottom() {
-//             break;
-//         }
-//         let t = ctx.fit(t, LABEL_SIZE, plot.w - 8.0);
-//         ctx.text(plot.right() - 4.0, y, &t, LABEL_SIZE, TEXT, HAlign::Right, VAlign::Top);
-//     }
-// }
-
-// ---------------------------------------------------------------- cartesian (column/bar/line/area/combo)
+// ---- cartesian (column/bar/line/area/combo)
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum Fam {
@@ -1630,16 +1618,19 @@ fn treemap(ctx: &mut Ctx, chart: &Chart, data: &ChartData, area: Bx) {
     }
 }
 
-// ---------------------------------------------------------------- radar
+// --------- radar
 
 fn radar(ctx: &mut Ctx, chart: &Chart, data: &ChartData, area: Bx) {
-    let ncat = data.categories.len().max(data.series.iter().map(|s| s.values.len()).max().unwrap_or(0)).min(1000);
+    let ncat = data.categories.len().max(data.series.iter()
+        .map(|s| s.values.len()).max().unwrap_or(0)).min(1000);
+    
     if ncat == 0 {
         return;
     }
+    
     let labels: Vec<String> = (0..ncat).map(|j| cat_label(data, j)).collect();
-    let lw = labels.iter().map(|t| ctx.tw(t, LABEL_SIZE)).fold(0.0f32, f32::max).min(area.w * 0.2);
-    let r = ((area.w - 2.0 * (lw + 8.0)).min(area.h - 2.0 * (LABEL_SIZE * 1.4 + 6.0)) / 2.0).max(0.0);
+    let lw = labels.iter().map(|t| ctx.tw(t, chart.label_size)).fold(0.0f32, f32::max).min(area.w * 0.2);
+    let r = ((area.w - 2.0 * (lw + 8.0)).min(area.h - 2.0 * (chart.label_size * 1.4 + 6.0)) / 2.0).max(0.0);
     if r < 5.0 {
         return;
     }
@@ -1667,7 +1658,7 @@ fn radar(ctx: &mut Ctx, chart: &Chart, data: &ChartData, area: Bx) {
             let mut ct = ChartText::new(TextKind::Text);
             ct.x = cx - 3.0;
             ct.y = cy - rr;
-            ct.size = ct.size * 0.9;
+            ct.size = chart.label_size;
             ct.content = f.format(t, Some(sc.step));
             ct.align_x = Alignment::Right;
             ct.align_y = Vertical::Bottom;
@@ -1694,14 +1685,17 @@ fn radar(ctx: &mut Ctx, chart: &Chart, data: &ChartData, area: Bx) {
         } else {
             Vertical::Center
         };
-        let t = ctx.fit(labels.get(j).map(String::as_str).unwrap_or(""), LABEL_SIZE, lw.max(20.0));
+        let t = ctx.fit(labels.get(j).map(String::as_str).unwrap_or(""), chart.label_size, lw.max(20.0));
+        
         let mut ct = ChartText::new(TextKind::Text);
         ct.x = p[0];
         ct.y = p[1];
         ct.align_x = align;
         ct.align_y = valign;
         ct.content = t;
+        ct.size = chart.label_size;
         ctx.text(ct.x, ct.y, ct);
+
     }
     for s in &data.series {
         let mut pts: Vec<[f32; 2]> = (0..ncat).map(|j| pt(ang(j), sc.frac(s.values.get(j).copied().flatten().unwrap_or(sc.min)) * r)).collect();

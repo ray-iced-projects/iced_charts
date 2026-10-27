@@ -22,6 +22,7 @@ pub struct Chart {
     pub style: u32,
     pub source: Option<String>,
     pub by_rows: bool,
+    pub label_size: f32,
 }
 
 impl Default for Chart {
@@ -39,6 +40,7 @@ impl Default for Chart {
             series: vec![],
             source: None,
             by_rows: false,
+            label_size: 10.0,
         }
     }
 }
@@ -66,6 +68,11 @@ impl Chart {
 
     pub fn y_title(mut self, title: ChartText) -> Self {
         self.y_title = Some(title);
+        self
+    }
+
+    pub fn label_size(mut self, size: f32) -> Self {
+        self.label_size = size;
         self
     }
 }

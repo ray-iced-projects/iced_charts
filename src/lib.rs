@@ -189,14 +189,6 @@ pub struct SeriesData {
     pub number_format: String,
 }
 
-/// A trendline to draw: the model settings with the line colour resolved against the theme.
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub struct TrendlineData {
-    pub spec: Trendline,
-    #[serde(with = "color_serde::single_color")]
-    pub color: iced::Color,
-}
-
 impl Default for SeriesData {
     fn default() -> Self {
         SeriesData {
@@ -213,6 +205,15 @@ impl Default for SeriesData {
         }
     }
 }
+
+/// A trendline to draw: the model settings with the line colour resolved against the theme.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct TrendlineData {
+    pub spec: Trendline,
+    #[serde(with = "color_serde::single_color")]
+    pub color: iced::Color,
+}
+
 
 pub struct State {
     cache: canvas::Cache,
