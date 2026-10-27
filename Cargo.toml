@@ -118,6 +118,10 @@ path = "examples/radar/src/main.rs"
 # name = "combo"
 # path = "examples/combo/src/main.rs"
 
+[[example]]
+name = "combo"
+path = "examples/vectorial_text/src/main.rs"
+
 [dependencies]
 iced = { git = "https://github.com/iced-rs/iced.git", branch = "master", features=["debug", "advanced", "canvas", "tokio"] }
 serde = { version = "1.0", features = ["derive"] }

@@ -433,13 +433,18 @@ fn draw_prim(frame: &mut Frame, prim: &Prim, theme: &Theme) {
         },
         Prim::Text(ct) => {
             frame.with_save(|f| {
-                f.translate(Vector::new(ct.x, ct.y));
+                // Set the actual position instead of just translating to it
+                let mut text_obj = ct.clone().to_iced(theme, ct.text_kind);
+                text_obj.position = Point::new(ct.x, ct.y);
                 
                 if ct.rotation != 0.0 {
+                    f.translate(Vector::new(ct.x, ct.y));
                     f.rotate(Radians(ct.rotation));
+                    // For rotated text, need to reset position since we translated
+                    text_obj.position = Point::new(0.0, 0.0);
                 }
                 
-                f.fill_text(ct.clone().to_iced(theme, ct.text_kind));
+                f.fill_text(text_obj);
             });
         },
     }

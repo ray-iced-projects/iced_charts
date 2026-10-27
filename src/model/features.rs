@@ -140,15 +140,8 @@ impl ChartText {
             TextKind::Text => bkg.strong.text,
         };
 
-        let (align_x, align_y) = match kind {
-            TextKind::Title => ( Alignment::Left, Vertical::Top ),
-            TextKind::XTitle => ( Alignment::Center, Vertical::Top),
-            TextKind::YTitle =>  ( Alignment::Center, Vertical::Top),
-            TextKind::XAxisLabels => ( Alignment::Center, Vertical::Top ),
-            TextKind::YAxisLabels => ( Alignment::Right, Vertical::Center ),
-            TextKind::Y2AxisLabels => ( Alignment::Left, Vertical::Center ),
-            TextKind::Text => ( Alignment::Left, Vertical::Center ),
-        };
+        // Use the alignment values set on the ChartText object, not hardcoded defaults
+        let (align_x, align_y) = (self.align_x, self.align_y);
 
         canvas::Text { 
             content: self.content, 

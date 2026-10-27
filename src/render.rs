@@ -363,6 +363,7 @@ fn draw_legend(ctx: &mut Ctx, entries: &[(String, iced::Color, Swatch)], pos: Le
                         ct.content = t.to_string();
                         ct.x = x + sx;
                         ct.y = yc;
+                        ct.align_y = Vertical::Center;
                         ctx.text(ct.x, ct.y, ct);
                     }
                     x += iw + spacing;
@@ -387,6 +388,7 @@ fn draw_legend(ctx: &mut Ctx, entries: &[(String, iced::Color, Swatch)], pos: Le
                 ct.content = t.to_string();
                 ct.x = x0 + sx;
                 ct.y = yc;
+                ct.align_y = Vertical::Center;
                 ctx.text(ct.x, ct.y, ct);
             }
             let used = colw + 8.0;
@@ -1621,56 +1623,127 @@ fn treemap(ctx: &mut Ctx, chart: &Chart, data: &ChartData, area: Bx) {
 // --------- radar
 
 fn radar(ctx: &mut Ctx, chart: &Chart, data: &ChartData, area: Bx) {
+    // ============ SETUP PHASE: Calculate dimensions and determine if chart is viable ============
+    
+    // Determine the number of categories (data points around the perimeter).
+    // Use the max of: explicit categories, or max series length, capped at 1000.
     let ncat = data.categories.len().max(data.series.iter()
         .map(|s| s.values.len()).max().unwrap_or(0)).min(1000);
     
+    // Early exit: no data means no chart to draw
     if ncat == 0 {
         return;
     }
     
+    // Extract all category labels from the data
     let labels: Vec<String> = (0..ncat).map(|j| cat_label(data, j)).collect();
+    
+    // Calculate the maximum label width (in pixels) at chart.label_size.
+    // Cap it at 20% of available width to prevent labels from overwhelming the chart.
     let lw = labels.iter().map(|t| ctx.tw(t, chart.label_size)).fold(0.0f32, f32::max).min(area.w * 0.2);
+    
+    // Calculate the radius of the radar polygon.
+    // Account for label space (lw + 8px margin) on both sides horizontally and vertically.
+    // The vertical constraint uses label_size * 1.4 (approximate line height) plus 6px margin.
+    // Ensure radius is never negative with .max(0.0).
     let r = ((area.w - 2.0 * (lw + 8.0)).min(area.h - 2.0 * (chart.label_size * 1.4 + 6.0)) / 2.0).max(0.0);
+    
+    // If the radius is too small to be useful, abort chart rendering
     if r < 5.0 {
         return;
     }
+    
+    // ============ COORDINATE SYSTEM SETUP ============
+    
+    // Center coordinates of the radar chart
     let (cx, cy) = (area.center_x(), area.center_y());
+    
+    // Find the min and max values across all data series to determine the value range
     let (lo, hi) = value_range(data.series.iter().flat_map(|s| s.values.iter().flatten().copied())).unwrap_or((0.0, 0.0));
+    
+    // Create a "nice" scale: generates human-friendly tick marks and step sizes
     let sc = nice_scale(lo, hi, true);
+    
+    // Create a formatter for displaying values using the series' number_format setting
     let f = Fmt::new(data.series.first().map(|s| s.number_format.as_str()).unwrap_or("General"));
+    
+    // ============ HELPER CLOSURES: Convert category index and radius to coordinates ============
+    
+    // Convert category index j to an angle (in radians, from 0 to 2π)
     let ang = |j: usize| j as f32 / ncat as f32 * TAU;
+    
+    // Convert angle and radius to Cartesian (x,y) coordinates on the canvas.
+    // Uses standard polar-to-Cartesian conversion with center at (cx, cy).
     let pt = |a: f32, rr: f32| [cx + rr * a.sin(), cy - rr * a.cos()];
+    
+    // ============ RADIAL GRIDLINES & VALUE LABELS (the concentric rings) ============
+    
+    // Get all tick marks from the nice scale
     let ticks = sc.ticks();
+    
+    // Calculate pixel distance between adjacent ticks (used to space value labels)
     let spacing = r / ticks.len().saturating_sub(1).max(1) as f32;
+    
+    // Calculate which ticks get labels: skip some if spacing is too tight to avoid overlap.
+    // Use hard-coded 1.3 factor to add breathing room between labels.
     let every = ((LABEL_SIZE * 1.3 / spacing.max(1e-3)).ceil() as usize).max(1);
+    
+    // Draw concentric gridlines and render value labels (e.g., "0", "100", "200")
     for (ti, t) in ticks.into_iter().enumerate() {
+        // Convert this tick value to a radius (scaled 0.0 to 1.0, then multiply by chart radius r)
         let rr = sc.frac(t) * r;
+        
+        // Draw the gridline ring if enabled and visible (rr > 0.5 avoids clutter at center)
         if rr > 0.5 && chart.gridlines {
+            // Create points around the ring by sampling each category angle
             let mut ring: Vec<[f32; 2]> = (0..ncat).map(|j| pt(ang(j), rr)).collect();
+            
+            // Special case: if < 3 categories, interpolate smooth curve instead of straight lines
             if ncat < 3 {
                 ring = (0..=48).map(|k| pt(k as f32 / 48.0 * TAU, rr)).collect();
             } else if let Some(p) = ring.first().copied() {
+                // Close the polygon by adding the first point at the end
                 ring.push(p);
             }
+            
+            // Draw the ring as a line with GRID color
             ctx.line(ring, GRID, 0.75);
         }
+        
+        // Draw value label (e.g., "100") on the vertical axis if this tick should be labeled
         if ti % every == 0 {
             let mut ct = ChartText::new(TextKind::Text);
-            ct.x = cx - 3.0;
-            ct.y = cy - rr;
+            ct.x = cx - 3.0;                                // Just left of center
+            ct.y = cy - rr;                                 // Vertically positioned at the tick
             ct.size = chart.label_size;
-            ct.content = f.format(t, Some(sc.step));
-            ct.align_x = Alignment::Right;
+            ct.content = f.format(t, Some(sc.step));       // Format the value
+            ct.align_x = Alignment::Right;                  // Right-align so text ends near center
             ct.align_y = Vertical::Bottom;
             ctx.text(ct.x, ct.y, ct);
         }
     }
+    
+    // ============ RADIAL AXES & CATEGORY LABELS (around the perimeter) ============
+    
+    // Determine how often to draw spokes and labels: avoid overcrowding with step calculation
+    // div_ceil(72) ensures labels don't overlap at typical screen DPI (72 units of label space)
     let step = ncat.div_ceil(72).max(1);
+    
+    // Draw spokes (lines from center to perimeter) and render category labels
     for j in (0..ncat).step_by(step) {
+        // Calculate the angle for this category
         let a = ang(j);
+        
+        // Draw a spoke from center to the perimeter at this angle
         ctx.line(vec![[cx, cy], pt(a, r)], GRID, 0.75);
+        
+        // Place the label at the vertex with radial offset only
         let p = pt(a, r + 6.0);
+        
+        // Pre-calculate sine and cosine to determine text alignment
         let (sa, ca) = (a.sin(), a.cos());
+        
+        // Horizontal alignment: if label is on the right side, left-align; if on left, right-align
         let align = if sa > 0.1 {
             Alignment::Left
         } else if sa < -0.1 {
@@ -1678,6 +1751,8 @@ fn radar(ctx: &mut Ctx, chart: &Chart, data: &ChartData, area: Bx) {
         } else {
             Alignment::Center
         };
+        
+        // Vertical alignment: if label is at bottom, top-align; if at top, bottom-align
         let valign = if ca > 0.1 {
             Vertical::Bottom
         } else if ca < -0.1 {
@@ -1685,23 +1760,44 @@ fn radar(ctx: &mut Ctx, chart: &Chart, data: &ChartData, area: Bx) {
         } else {
             Vertical::Center
         };
+        
+        // Fit the label text to available width (lw), handling overflow with truncation/wrapping
         let t = ctx.fit(labels.get(j).map(String::as_str).unwrap_or(""), chart.label_size, lw.max(20.0));
         
+        // Create and render the category label
         let mut ct = ChartText::new(TextKind::Text);
         ct.x = p[0];
         ct.y = p[1];
+        
+        // Add extra vertical offset for top label to avoid overlap with value labels
+        // Only apply to the very top label (ca close to 1.0)
+        if ca > 0.9 {
+            ct.y -= 10.0;  // Move top label up
+        }
+        
         ct.align_x = align;
         ct.align_y = valign;
         ct.content = t;
         ct.size = chart.label_size;
         ctx.text(ct.x, ct.y, ct);
-
     }
+    
+    // ============ RENDER DATA SERIES (the colored polygons) ============
+    
+    // Draw one polygon per series, connecting values at each category angle
     for s in &data.series {
-        let mut pts: Vec<[f32; 2]> = (0..ncat).map(|j| pt(ang(j), sc.frac(s.values.get(j).copied().flatten().unwrap_or(sc.min)) * r)).collect();
+        // Create points for this series: for each category, get the corresponding value,
+        // convert to a radius fraction (0.0 to 1.0), and scale by chart radius r
+        let mut pts: Vec<[f32; 2]> = (0..ncat).map(|j| 
+            pt(ang(j), sc.frac(s.values.get(j).copied().flatten().unwrap_or(sc.min)) * r)
+        ).collect();
+        
+        // Close the polygon by adding the first point at the end
         if let Some(p) = pts.first().copied() {
             pts.push(p);
         }
+        
+        // Draw the series polygon with its assigned color
         ctx.line(pts, s.color, 2.0);
     }
 }
