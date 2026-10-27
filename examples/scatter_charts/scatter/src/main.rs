@@ -102,6 +102,7 @@ impl Example {
             Message::OnThemeSelect(theme_str) => {
                 self.selected_theme_str = theme_str.clone();
                 self.selected_theme = str_to_theme(&theme_str);
+                self.grid.request_redraw();
             }
         }
     }

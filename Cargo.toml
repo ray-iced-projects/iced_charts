@@ -37,13 +37,13 @@ canvas = []
 name = "line"
 path = "examples/line/src/main.rs"
 
-# [[example]]
-# name = "line_markers"
-# path = "examples/line_markers/src/main.rs"
+[[example]]
+name = "line_markers"
+path = "examples/line_markers/src/main.rs"
 
-# [[example]]
-# name = "line_stacked"
-# path = "examples/line_stacked/src/main.rs"
+[[example]]
+name = "line_stacked"
+path = "examples/line_stacked/src/main.rs"
 
 [[example]]
 name = "pie"
