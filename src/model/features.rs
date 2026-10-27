@@ -95,7 +95,7 @@ impl ChartText {
         let (size, rotation) = match kind {
             TextKind::Title => (16.0, 0.0),
             TextKind::XTitle => (12.0, 0.0),
-            TextKind::YTitle => (12.0, PI/2.0),
+            TextKind::YTitle => (12.0, -PI/2.0),
             TextKind::XAxisLabels => (12.0, 0.0),
             TextKind::YAxisLabels => (12.0, 0.0),
             _ => (10.0, 0.0)

@@ -52,10 +52,10 @@ impl Bx {
     fn ok(&self) -> bool {
         self.w.is_finite() && self.h.is_finite() && self.w > 4.0 && self.h > 4.0
     }
-    fn cx(&self) -> f32 {
+    fn center_x(&self) -> f32 {
         self.x + self.w / 2.0
     }
-    fn cy(&self) -> f32 {
+    fn center_y(&self) -> f32 {
         self.y + self.h / 2.0
     }
 }
@@ -292,8 +292,8 @@ fn axis_titles(ctx: &mut Ctx, chart: &Chart, mut area: Bx) -> Bx {
     if let Some(ct) = &chart.y_title {
         let lh = ct.size * 1.4 + 2.0;
         let mut ct = ct.clone();
-        ct.x = area.x + ct.line_height * ct.size;
-        ct.y = area.y + (area.h / 2.0);
+        ct.x = area.x;
+        ct.y = area.center_y();
         ctx.out.push(Prim::Text(ct.clone()));
         area.x += lh;
         area.w -= lh;
@@ -1465,7 +1465,7 @@ fn funnel(ctx: &mut Ctx, chart: &Chart, data: &ChartData, area: Bx) {
                 let t = f.format(s.values.get(j).copied().flatten().unwrap_or(0.0), None);
                 let _color = if ctx.tw(&t, LABEL_SIZE) + 4.0 <= bw { on(s.color) } else { TEXT };
                 let mut ct = ChartText::new(TextKind::Text);
-                ct.x = plot.cx();
+                ct.x = plot.center_x();
                 ct.y = yc;
                 ct.align_x = Alignment::Center;
                 ct.align_y = Vertical::Center;
@@ -1491,7 +1491,7 @@ fn pie(ctx: &mut Ctx, chart: &Chart, data: &ChartData, area: Bx, inner: f32, nam
     if !(total.is_finite() && total > 0.0) {
         return;
     }
-    let (cx, cy) = (area.cx(), area.cy());
+    let (cx, cy) = (area.center_x(), area.center_y());
     let r = area.w.min(area.h) / 2.0 * 0.92;
     if r < 2.0 {
         return;
@@ -1643,7 +1643,7 @@ fn radar(ctx: &mut Ctx, chart: &Chart, data: &ChartData, area: Bx) {
     if r < 5.0 {
         return;
     }
-    let (cx, cy) = (area.cx(), area.cy());
+    let (cx, cy) = (area.center_x(), area.center_y());
     let (lo, hi) = value_range(data.series.iter().flat_map(|s| s.values.iter().flatten().copied())).unwrap_or((0.0, 0.0));
     let sc = nice_scale(lo, hi, true);
     let f = Fmt::new(data.series.first().map(|s| s.number_format.as_str()).unwrap_or("General"));
