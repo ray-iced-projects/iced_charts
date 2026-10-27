@@ -285,6 +285,8 @@ fn axis_titles(ctx: &mut Ctx, chart: &Chart, mut area: Bx) -> Bx {
         let mut ct = ct.clone();
         ct.x = area.center_x() + 20.0;
         ct.y = area.y + area.h - lh;
+        ct.align_x = Alignment::Center;
+        ct.align_y = Vertical::Top;
         ctx.out.push(Prim::Text(ct));
         area.h -= lh;
     };
@@ -294,6 +296,8 @@ fn axis_titles(ctx: &mut Ctx, chart: &Chart, mut area: Bx) -> Bx {
         let mut ct = ct.clone();
         ct.x = area.x;
         ct.y = area.center_y();
+        ct.align_x = Alignment::Center;
+        ct.align_y = Vertical::Center;
         ctx.out.push(Prim::Text(ct.clone()));
         area.x += lh;
         area.w -= lh;
@@ -484,7 +488,8 @@ fn frame(ctx: &mut Ctx, area: Bx, cat: CatAxis, y: &ValAxis, y2: Option<&ValAxis
                     ct.content = t.clone();
                     ct.x = xx;
                     ct.y = plot.bottom() + 3.0;
-                    ct.size = 12.0;
+                    ct.align_x = Alignment::Center;
+                    ct.align_y = Vertical::Top;
 
                     ctx.text(ct.x, ct.y, ct);
                 }
@@ -1254,9 +1259,23 @@ fn scatter(ctx: &mut Ctx, chart: &Chart, data: &ChartData, area: Bx) {
                 .collect();
             bubbles.sort_by(|a, b| b.1.total_cmp(&a.1));
             let smax = if sizes.is_empty() { 1.0 } else { smax };
+            
+            // Calculate a global scale factor to keep all bubbles within plot bounds while maintaining proportions
+            let mut scale_factor = 1.0f32;
+            for (p, sz) in &bubbles {
+                let r = ((sz / smax).sqrt() as f32 * rmax).max(1.0);
+                let max_r = f32::min(
+                    f32::min(p[0] - plot.x, plot.right() - p[0]),
+                    f32::min(p[1] - plot.y, plot.bottom() - p[1])
+                ).max(1.0);
+                if r > max_r {
+                    scale_factor = scale_factor.min(max_r / r);
+                }
+            }
+            
             let fill = iced::Color::from_rgba(s.color.r, s.color.g, s.color.b, 0xC0 as f32 / 255.0);
             for (p, sz) in bubbles {
-                let r = ((sz / smax).sqrt() as f32 * rmax).max(1.0);
+                let r = ((sz / smax).sqrt() as f32 * rmax * scale_factor).max(1.0);
                 ctx.out.push(Prim::Circle { cx: p[0], cy: p[1], r, fill: Some(fill), stroke: Some((WHITE, 0.75)) });
             }
         } else {

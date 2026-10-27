@@ -10,6 +10,14 @@ default = ["canvas"]
 canvas = []
 
 [[example]]
+name = "area"
+path = "examples/area/src/main.rs"
+
+[[example]]
+name = "area_stacked"
+path = "examples/area_stacked/src/main.rs"
+
+[[example]]
 name = "bar_clustered"
 path = "examples/bar_clustered/src/main.rs"
 
@@ -20,6 +28,10 @@ path = "examples/bar_stacked/src/main.rs"
 [[example]]
 name = "bar_stacked_100"
 path = "examples/bar_stacked_100/src/main.rs"
+
+[[example]]
+name = "bubble"
+path = "examples/bubble/src/main.rs"
 
 [[example]]
 name = "column_clustered"
@@ -38,6 +50,10 @@ name = "combo"
 path = "examples/combo/src/main.rs"
 
 [[example]]
+name = "doughnut"
+path = "examples/doughnut/src/main.rs"
+
+[[example]]
 name = "line"
 path = "examples/line/src/main.rs"
 
@@ -52,18 +68,6 @@ path = "examples/line_stacked/src/main.rs"
 [[example]]
 name = "pie"
 path = "examples/pie/src/main.rs"
-
-[[example]]
-name = "doughnut"
-path = "examples/doughnut/src/main.rs"
-
-# [[example]]
-# name = "area"
-# path = "examples/area/src/main.rs"
-
-# [[example]]
-# name = "area_stacked"
-# path = "examples/area_stacked/src/main.rs"
 
 [[example]]
 name = "scatter"
@@ -84,11 +88,6 @@ path = "examples/scatter_charts/scatter_with_linear_trend/src/main.rs"
 [[example]]
 name = "radar"
 path = "examples/radar/src/main.rs"
-
-# [[example]]
-# name = "bubble"
-# path = "examples/bubble/src/main.rs"
-# path = "examples/radar/src/main.rs"
 
 [[example]]
 name = "histogram"
