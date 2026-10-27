@@ -9,29 +9,33 @@ description = "A charting program using Iced."
 default = ["canvas"]
 canvas = []
 
-# [[example]]
-# name = "column_clustered"
-# path = "examples/column_clustered/src/main.rs"
+[[example]]
+name = "bar_clustered"
+path = "examples/bar_clustered/src/main.rs"
 
-# [[example]]
-# name = "column_stacked"
-# path = "examples/column_stacked/src/main.rs"
+[[example]]
+name = "bar_stacked"
+path = "examples/bar_stacked/src/main.rs"
 
-# [[example]]
-# name = "column_stacked_100"
-# path = "examples/column_stacked_100/src/main.rs"
+[[example]]
+name = "bar_stacked_100"
+path = "examples/bar_stacked_100/src/main.rs"
 
-# [[example]]
-# name = "bar_clustered"
-# path = "examples/bar_clustered/src/main.rs"
+[[example]]
+name = "column_clustered"
+path = "examples/column_clustered/src/main.rs"
 
-# [[example]]
-# name = "bar_stacked"
-# path = "examples/bar_stacked/src/main.rs"
+[[example]]
+name = "column_stacked"
+path = "examples/column_stacked/src/main.rs"
 
-# [[example]]
-# name = "bar_stacked_100"
-# path = "examples/bar_stacked_100/src/main.rs"
+[[example]]
+name = "column_stacked_100"
+path = "examples/column_stacked_100/src/main.rs"
+
+[[example]]
+name = "combo"
+path = "examples/combo/src/main.rs"
 
 [[example]]
 name = "line"
@@ -49,9 +53,9 @@ path = "examples/line_stacked/src/main.rs"
 name = "pie"
 path = "examples/pie/src/main.rs"
 
-# [[example]]
-# name = "doughnut"
-# path = "examples/doughnut/src/main.rs"
+[[example]]
+name = "doughnut"
+path = "examples/doughnut/src/main.rs"
 
 # [[example]]
 # name = "area"
@@ -86,17 +90,17 @@ path = "examples/radar/src/main.rs"
 # path = "examples/bubble/src/main.rs"
 # path = "examples/radar/src/main.rs"
 
-# [[example]]
-# name = "histogram"
-# path = "examples/histogram/src/main.rs"
+[[example]]
+name = "histogram"
+path = "examples/histogram/src/main.rs"
 
 # [[example]]
 # name = "waterfall"
 # path = "examples/waterfall/src/main.rs"
 
-# [[example]]
-# name = "funnel"
-# path = "examples/funnel/src/main.rs"
+[[example]]
+name = "funnel"
+path = "examples/funnel/src/main.rs"
 
 # [[example]]
 # name = "treemap"
@@ -114,12 +118,10 @@ path = "examples/radar/src/main.rs"
 # name = "stock"
 # path = "examples/stock/src/main.rs"
 
-# [[example]]
-# name = "combo"
-# path = "examples/combo/src/main.rs"
+
 
 [[example]]
-name = "combo"
+name = "vectorial_text"
 path = "examples/vectorial_text/src/main.rs"
 
 [dependencies]

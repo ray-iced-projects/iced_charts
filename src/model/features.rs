@@ -40,7 +40,7 @@ impl Default for Chart {
             series: vec![],
             source: None,
             by_rows: false,
-            label_size: 10.0,
+            label_size: 12.0,
         }
     }
 }
@@ -73,6 +73,16 @@ impl Chart {
 
     pub fn label_size(mut self, size: f32) -> Self {
         self.label_size = size;
+        self
+    }
+
+    pub fn legend(mut self, position: LegendPos) -> Self {
+        self.legend = position;
+        self
+    }
+
+    pub fn gridlines(mut self, gl: bool) -> Self {
+        self.gridlines = gl;
         self
     }
 }
@@ -140,8 +150,15 @@ impl ChartText {
             TextKind::Text => bkg.strong.text,
         };
 
-        // Use the alignment values set on the ChartText object, not hardcoded defaults
-        let (align_x, align_y) = (self.align_x, self.align_y);
+        // For axis labels, use standard alignment based on axis type
+        // For other text (like radar labels), use the alignment set on the ChartText object
+        let (align_x, align_y) = match kind {
+            TextKind::YAxisLabels => ( Alignment::Right, Vertical::Center ),
+            TextKind::Y2AxisLabels => ( Alignment::Left, Vertical::Center ),
+            TextKind::XAxisLabels => ( Alignment::Center, Vertical::Top ),
+            // For all other types, use what was set on the ChartText object
+            _ => (self.align_x, self.align_y),
+        };
 
         canvas::Text { 
             content: self.content, 

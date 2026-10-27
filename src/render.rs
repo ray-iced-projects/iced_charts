@@ -1343,8 +1343,8 @@ fn histogram(ctx: &mut Ctx, chart: &Chart, data: &ChartData, area: Bx) {
             ct.x = x + cw / 2.0;
             ct.y = top - 2.0;
             ct.content = c.to_string();
-            ct.align_x = Alignment::Center;
-            ct.align_y = Vertical::Bottom;
+            ct.align_x = Alignment::Right;
+            ct.align_y = Vertical::Center;
             ctx.text(ct.x, ct.y, ct);
         }
     }
@@ -1433,7 +1433,7 @@ fn funnel(ctx: &mut Ctx, chart: &Chart, data: &ChartData, area: Bx) {
         return;
     }
     let labels: Vec<String> = (0..n).map(|j| cat_label(data, j)).collect();
-    let lw = (labels.iter().take(2000).map(|t| ctx.tw(t, LABEL_SIZE)).fold(0.0f32, f32::max) + 8.0).min(area.w * 0.35);
+    let lw = (labels.iter().take(2000).map(|t| ctx.tw(t, chart.label_size)).fold(0.0f32, f32::max) + 8.0).min(area.w * 0.35);
     let plot = Bx { x: area.x + lw, w: area.w - lw, ..area };
     if !plot.ok() {
         return;
@@ -1441,7 +1441,7 @@ fn funnel(ctx: &mut Ctx, chart: &Chart, data: &ChartData, area: Bx) {
     let slot = plot.h / n as f32;
     let bh = slot * 0.85;
     let f = Fmt::new(&s.number_format);
-    let show = slot >= LABEL_SIZE * 0.9;
+    let show = slot >= chart.label_size;
     for (j, v) in vals.iter().enumerate() {
         let bw = (*v / max) as f32 * plot.w;
         let x = plot.x + (plot.w - bw) / 2.0;
@@ -1453,20 +1453,24 @@ fn funnel(ctx: &mut Ctx, chart: &Chart, data: &ChartData, area: Bx) {
             let yc = y + bh / 2.0;
             if chart.data_labels {
                 let t = f.format(s.values.get(j).copied().flatten().unwrap_or(0.0), None);
-                let _color = if ctx.tw(&t, LABEL_SIZE) + 4.0 <= bw { on(s.color) } else { TEXT };
+                // let _color = if ctx.tw(&t, chart.label_size) + 4.0 <= bw { on(s.color) } else { TEXT };
                 let mut ct = ChartText::new(TextKind::Text);
                 ct.x = plot.center_x();
                 ct.y = yc;
                 ct.align_x = Alignment::Center;
                 ct.align_y = Vertical::Center;
+                ct.content = t;
+                ct.size = chart.label_size;
                 ctx.text(ct.x, ct.y, ct);
             }
-            let _l = ctx.fit(labels.get(j).map(String::as_str).unwrap_or(""), LABEL_SIZE, lw - 8.0);
+            let l = ctx.fit(labels.get(j).map(String::as_str).unwrap_or(""), chart.label_size, lw - 8.0);
             let mut ct = ChartText::new(TextKind::Text);
             ct.x = plot.x - 6.0;
             ct.y = yc;
             ct.align_x = Alignment::Right;
             ct.align_y = Vertical::Center;
+            ct.content = l;
+            ct.size = chart.label_size;
             ctx.text(ct.x, ct.y, ct);
         }
     }

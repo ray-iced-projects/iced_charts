@@ -4,8 +4,8 @@ use iced::mouse;
 use iced::widget::canvas::Path;
 use iced::widget::canvas::Stroke;
 use iced::widget::scrollable;
-use iced::widget::{canvas, checkbox, column, row, slider, space, text};
-use iced::{Center, Fill, Point, Rectangle, Renderer, Theme, Vector, Widget};
+use iced::widget::{canvas, text};
+use iced::{Point, Rectangle, Renderer, Theme, Vector, Widget};
 
 pub fn main() -> iced::Result {
 
@@ -26,30 +26,14 @@ struct VectorialText {
 
 #[derive(Debug, Clone, Copy)]
 enum Message {
-    SizeChanged(f32),
-    AngleChanged(f32),
-    ScaleChanged(f32),
-    ToggleJapanese(bool),
 }
 
 impl VectorialText {
     fn update(&mut self, message: Message) {
         match message {
-            Message::SizeChanged(size) => {
-                self.state.size = size;
-            }
-            Message::AngleChanged(angle) => {
-                self.state.angle = angle;
-            }
-            Message::ScaleChanged(scale) => {
-                self.state.scale = scale;
-            }
-            Message::ToggleJapanese(use_japanese) => {
-                self.state.use_japanese = use_japanese;
-            }
+            
         }
 
-        self.state.cache.clear();
     }
 
     fn view(&self) -> impl Widget<Message> {
@@ -60,20 +44,12 @@ impl VectorialText {
 }
 
 struct State {
-    size: f32,
-    angle: f32,
-    scale: f32,
-    use_japanese: bool,
     cache: canvas::Cache,
 }
 
 impl State {
     pub fn new() -> Self {
         Self {
-            size: 40.0,
-            angle: 0.0,
-            scale: 1.0,
-            use_japanese: false,
             cache: canvas::Cache::new(),
         }
     }
@@ -115,7 +91,7 @@ impl<Message> canvas::Program<Message> for State {
 
             for (i, point) in points.iter().enumerate() {
                 let mut align_x = text::Alignment::Left;
-                let mut align_y = alignment::Vertical::Center;
+                let align_y = alignment::Vertical::Center;
                 
                 if ["Cost", "Support"].contains(&labels[i]) {
                     align_x = text::Alignment::Right;

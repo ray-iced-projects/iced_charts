@@ -39,6 +39,7 @@ impl Default for Example {
             .title(title)
             .x_title(x_title)
             .y_title(y_title);
+        
         let theme = ChartTheme::default();
 
         let data = ChartData {
