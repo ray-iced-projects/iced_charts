@@ -3,8 +3,7 @@ use iced::{Theme, Widget};
 use iced_charts::model::features::{ChartText, TextKind};
 use iced_charts::{Chart, ChartData, ChartKind, SeriesData, ChartState};
 use iced_charts::resolve::series_color;
-use iced_charts::model::style::ChartTheme;
-use iced_charts::model::series_colors::{theme_strings, str_to_theme};
+use iced_charts::model::theme_helpers::{theme_strings, str_to_theme};
 
 
 pub fn main() -> iced::Result {
@@ -33,7 +32,7 @@ impl Default for Example {
             .title(title)
             .label_size(12.0);
 
-        let theme = ChartTheme::default();
+        let theme = Theme::TokyoNight;
 
         let data = ChartData {
             categories: ["0-100ms", "100-200ms", "200-300ms", "300-400ms", "400-500ms", "500ms+"]

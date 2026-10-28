@@ -485,9 +485,9 @@ mod tests {
     #[test]
     fn test_color_values_in_range() {
         // Test that series_color produces valid iced::Color values
-        use crate::model::style::ChartTheme;
-        
-        let theme = ChartTheme::default();
+
+        let theme = Theme::TokyoNight;
+
         for i in 0..12 {
             let color = crate::resolve::series_color(&theme, i);
             assert!(color.r >= 0.0 && color.r <= 1.0, "Red component out of range: {}", color.r);

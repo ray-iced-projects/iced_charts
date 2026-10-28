@@ -5,9 +5,9 @@ use std::f32::consts::TAU;
 
 use iced::alignment::Vertical;
 use iced::advanced::text::Alignment;
+use iced::Theme;
 
 use crate::model::features::{Chart, ChartKind, ChartText, LegendPos, LineDash, TextKind, TrendlineKind};
-use crate::model::style::ChartTheme;
 use crate::axis::{Fmt, Scale, clean, fixed_scale, nice_scale};
 use crate::resolve::{MAX_POINTS, MAX_SERIES, MAX_TRENDLINES, series_color};
 use crate::trend::{auto_name, fit_trendline, moving_average};
@@ -140,7 +140,7 @@ fn point_color(data: &ChartData, j: usize) -> iced::Color {
         _ => j.checked_rem(data.palette.len())
             .and_then(|k| data.palette.get(k))
             .copied()
-            .unwrap_or_else(|| series_color(&ChartTheme::default(), j)),
+            .unwrap_or_else(|| series_color(&Theme::Dark, j)),
     }
 }
 

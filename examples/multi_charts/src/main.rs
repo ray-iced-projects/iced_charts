@@ -2,7 +2,7 @@ use iced::widget::{container, column};
 use iced::{Task, Theme, Widget, window};
 use iced_charts::ChartState;
 use iced_charts::model::style::ChartTheme;
-use iced_charts::model::series_colors::{theme_strings, str_to_theme};
+use iced_charts::model::theme_helpers::{theme_strings, str_to_theme};
 use iced_charts::config::load_chart_from_yaml;
 
 use iced_menu::{Menu, MenuMessage};
@@ -42,7 +42,7 @@ impl Default for Example {
         let theme = ChartTheme::default();
 
         // Build a ready-to-render chart state directly from the config
-        let grid = config.charts[0].build_state(&theme);
+        let grid = config.charts[0].build_state(&theme, &Theme::TokyoNight);
 
         Example {
             grid,

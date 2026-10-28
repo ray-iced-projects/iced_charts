@@ -4,8 +4,7 @@ use iced::{Theme, Widget};
 use iced_charts::model::features::{ChartText, TextKind};
 use iced_charts::{Chart, ChartData, ChartKind, SeriesData, ChartState, Trendline, TrendlineData, TrendlineKind};
 use iced_charts::resolve::series_color;
-use iced_charts::model::style::ChartTheme as ChartTheme;
-use iced_charts::model::series_colors::{theme_strings, str_to_theme};
+use iced_charts::model::theme_helpers::{theme_strings, str_to_theme};
 
 const _LABEL_SIZE: f32 = 10.0;
 
@@ -43,7 +42,7 @@ impl Default for Example {
             .x_title(x_title)
             .y_title(y_title);
 
-        let theme = ChartTheme::default();
+        let theme = Theme::TokyoNight;
 
         let data = ChartData {
             categories: vec![],

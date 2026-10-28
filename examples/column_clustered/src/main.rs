@@ -4,8 +4,7 @@ use iced::{Theme, Widget};
 use iced_charts::model::features::{ChartText, TextKind};
 use iced_charts::{ChartState, Chart, ChartData, ChartKind, LegendPos, SeriesData};
 use iced_charts::resolve::series_color;
-use iced_charts::model::style::ChartTheme;
-use iced_charts::model::series_colors::{theme_strings, str_to_theme};
+use iced_charts::model::theme_helpers::{theme_strings, str_to_theme};
 
 
 pub fn main() -> iced::Result {
@@ -41,7 +40,9 @@ impl Default for Example {
             .x_title(x_title)
             .y_title(y_title)
             .legend(LegendPos::Bottom);
-        let theme = ChartTheme::default();
+
+        let theme = Theme::TokyoNight;
+
         let data = ChartData {
             categories: ["Q1", "Q2", "Q3", "Q4"]
                 .iter()

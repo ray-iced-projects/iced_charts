@@ -1,5 +1,6 @@
 //! Chart configuration loading from YAML or JSON files.
 use serde::{Deserialize, Serialize};
+use iced::Theme;
 use crate::model::features::{ChartText, TextKind};
 use crate::model::style::ChartTheme;
 use crate::resolve::series_color;
@@ -44,8 +45,8 @@ pub struct SeriesConfig {
 }
 
 impl SeriesConfig {
-    /// Build a `SeriesData` from this config, resolving colour from the theme.
-    pub fn build_series(&self, index: usize, kind: ChartKind, theme: &ChartTheme) -> SeriesData {
+    /// Build a `SeriesData` from this config, resolving colour from the iced theme.
+    pub fn build_series(&self, index: usize, kind: ChartKind, _chart_theme: &ChartTheme, iced_theme: &Theme) -> SeriesData {
         SeriesData {
             name: self.name.clone().into(),
             x: if self.x_values.is_empty() {
@@ -60,7 +61,7 @@ impl SeriesConfig {
                 Some(self.sizes.iter().map(|&v| Some(v)).collect())
             },
             kind: self.kind.unwrap_or(kind),
-            color: series_color(theme, index),
+            color: series_color(iced_theme, index),
             ..Default::default()
         }
     }
@@ -115,12 +116,12 @@ impl ChartConfigItem {
     }
 
     /// Build the `ChartData` (all series with theme-resolved colours) from this config.
-    pub fn build_data(&self, theme: &ChartTheme) -> ChartData {
+    pub fn build_data(&self, chart_theme: &ChartTheme, iced_theme: &Theme) -> ChartData {
         let series = self
             .series
             .iter()
             .enumerate()
-            .map(|(idx, s)| s.build_series(idx, self.kind, theme))
+            .map(|(idx, s)| s.build_series(idx, self.kind, chart_theme, iced_theme))
             .collect();
 
         ChartData {
@@ -131,8 +132,8 @@ impl ChartConfigItem {
     }
 
     /// Build a ready-to-render `ChartState` (chart + data) from this config.
-    pub fn build_state(&self, theme: &ChartTheme) -> ChartState {
-        ChartState::new(self.build_chart(), self.build_data(theme))
+    pub fn build_state(&self, chart_theme: &ChartTheme, iced_theme: &Theme) -> ChartState {
+        ChartState::new(self.build_chart(), self.build_data(chart_theme, iced_theme))
     }
 }
 

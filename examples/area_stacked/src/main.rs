@@ -3,8 +3,7 @@ use iced::{Theme, Widget};
 use iced_charts::model::features::{ChartText, TextKind};
 use iced_charts::{ChartState, Chart, ChartData, ChartKind, SeriesData};
 use iced_charts::resolve::series_color;
-use iced_charts::model::style::ChartTheme;
-use iced_charts::model::series_colors::{theme_strings, str_to_theme};
+use iced_charts::model::theme_helpers::{theme_strings, str_to_theme};
 
 
 pub fn main() -> iced::Result {
@@ -21,6 +20,8 @@ struct Example {
 
 impl Default for Example {
     fn default() -> Self {
+
+        let theme = Theme::TokyoNight;
 
         let mut title = ChartText::new(TextKind::Title);
         title.content = "Cloud Infrastructure Costs".into();
@@ -39,8 +40,6 @@ impl Default for Example {
             .title(title)
             .x_title(x_title)
             .y_title(y_title);
-        
-        let theme = ChartTheme::default();
 
         let data = ChartData {
             categories: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul"]

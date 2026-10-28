@@ -2,8 +2,7 @@
 use iced::widget::{PickList, container, row};
 use iced::{Theme, Widget};
 use iced_charts::model::features::{ChartText, TextKind};
-use iced_charts::model::series_colors::{str_to_theme, theme_strings};
-use iced_charts::model::style::ChartTheme;
+use iced_charts::model::theme_helpers::{str_to_theme, theme_strings};
 use iced_charts::{ChartState, Chart, ChartData, ChartKind, SeriesData};
 use iced_charts::resolve::series_color;
 
@@ -41,7 +40,7 @@ impl Default for Example {
             .x_title(x_title)
             .y_title(y_title);
 
-        let theme = ChartTheme::default();
+        let theme = Theme::TokyoNight;
 
         let data = ChartData {
             categories: vec![],
