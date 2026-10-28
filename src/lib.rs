@@ -215,15 +215,15 @@ pub struct TrendlineData {
 }
 
 
-pub struct State {
+pub struct ChartState {
     cache: canvas::Cache,
     chart: Chart,
     data: ChartData,
 }
 
-impl State {
+impl ChartState {
     pub fn new(chart: Chart, data: ChartData) -> Self {
-        State { cache: canvas::Cache::default(), chart, data }
+        ChartState { cache: canvas::Cache::default(), chart, data }
     }
 
     pub fn view<'a>(&'a self) -> impl Widget<()> {
@@ -238,7 +238,7 @@ impl State {
 }
 
 struct Grid<'a> {
-    state: &'a State,
+    state: &'a ChartState,
 }
 
 impl <Message>canvas::Program<Message> for Grid<'_> {

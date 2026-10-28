@@ -1,10 +1,13 @@
+
 use iced::widget::{PickList, container, row};
 use iced::{Theme, Widget};
 use iced_charts::model::features::{ChartText, TextKind};
-use iced_charts::{State, Chart, ChartData, ChartKind, SeriesData, Trendline, TrendlineKind, TrendlineData};
+use iced_charts::{Chart, ChartData, ChartKind, SeriesData, ChartState, Trendline, TrendlineData, TrendlineKind};
 use iced_charts::resolve::series_color;
-use iced_charts::model::style::ChartTheme;
+use iced_charts::model::style::ChartTheme as ChartTheme;
 use iced_charts::model::series_colors::{theme_strings, str_to_theme};
+
+const _LABEL_SIZE: f32 = 10.0;
 
 
 pub fn main() -> iced::Result {
@@ -14,7 +17,7 @@ pub fn main() -> iced::Result {
 }
 
 struct Example {
-    grid: State,
+    grid: ChartState,
     selected_theme_str: String,
     selected_theme: Theme,
 }
@@ -29,7 +32,7 @@ impl Default for Example {
         x_title.content = "Days".into();
         
         let mut y_title = ChartText::new(TextKind::YTitle);
-        y_title.content = "Visitors".into();
+        y_title.content = "Dailey Visitors".into();
         
         let chart = 
             Chart::new(
@@ -66,13 +69,13 @@ impl Default for Example {
                     trendlines: vec![
                         TrendlineData {
                             spec: Trendline {
-                                kind: TrendlineKind::MovingAverage(3),
-                                name: Some("3-Day Moving Average".into()),
+                                kind: TrendlineKind::Linear,
+                                name: Some("Linear Trend".into()),
                                 forward: 0.0,
                                 backward: 0.0,
                                 intercept: None,
-                                display_equation: false,
-                                display_r_squared: false,
+                                display_equation: true,
+                                display_r_squared: true,
                                 color: None,
                                 width: Some(2.5),
                                 dash: None,
@@ -87,7 +90,7 @@ impl Default for Example {
             palette: vec![],
         };
         Example { 
-            grid: State::new(chart, data),
+            grid: ChartState::new(chart, data),
             selected_theme_str: "TokyoNight".to_string(),
             selected_theme: Theme::TokyoNight,
          }
@@ -102,12 +105,16 @@ enum Message {
 impl Example {
     fn update(&mut self, message: Message) {
         match message {
-            Message::OnThemeSelect(theme_str) => {
-                self.selected_theme_str = theme_str.clone();
-                self.selected_theme = str_to_theme(&theme_str);
+            Message::OnThemeSelect(str) => {
+                self.selected_theme = str_to_theme(&str);
+                self.selected_theme_str = str;
                 self.grid.request_redraw();
             }
         }
+    }
+
+    fn theme(&self) -> Theme {
+        self.selected_theme.clone()
     }
 
     fn view(&self) -> impl Widget<Message> {
@@ -126,9 +133,6 @@ impl Example {
             container(self.grid.view().map(|_| unreachable!()))
                 .padding(20).boxed()
         ]).padding(20.0).boxed()
-    }
 
-    fn theme(&self) -> Theme {
-        self.selected_theme.clone()
     }
 }

@@ -2,12 +2,10 @@
 use iced::widget::{PickList, container, row};
 use iced::{Theme, Widget};
 use iced_charts::model::features::{ChartText, TextKind};
-use iced_charts::{Chart, ChartData, ChartKind, SeriesData, State, Trendline, TrendlineData, TrendlineKind};
+use iced_charts::model::series_colors::{str_to_theme, theme_strings};
+use iced_charts::model::style::ChartTheme;
+use iced_charts::{ChartState, Chart, ChartData, ChartKind, SeriesData};
 use iced_charts::resolve::series_color;
-use iced_charts::model::style::ChartTheme as ChartTheme;
-use iced_charts::model::series_colors::{theme_strings, str_to_theme};
-
-const _LABEL_SIZE: f32 = 10.0;
 
 
 pub fn main() -> iced::Result {
@@ -17,7 +15,7 @@ pub fn main() -> iced::Result {
 }
 
 struct Example {
-    grid: State,
+    grid: ChartState,
     selected_theme_str: String,
     selected_theme: Theme,
 }
@@ -26,13 +24,13 @@ impl Default for Example {
     fn default() -> Self {
 
         let mut title = ChartText::new(TextKind::Title);
-        title.content = "Website Traffic with Moving Average Trend".into();
+        title.content = "Revenue vs Marketing Spend Correlation".into();
 
         let mut x_title = ChartText::new(TextKind::XTitle);
-        x_title.content = "Days".into();
+        x_title.content = "Marketing Spend ($K)".into();
         
         let mut y_title = ChartText::new(TextKind::YTitle);
-        y_title.content = "Dailey Visitors".into();
+        y_title.content = "Revenue ($M)".into();
         
         let chart = 
             Chart::new(
@@ -49,51 +47,45 @@ impl Default for Example {
             categories: vec![],
             series: vec![
                 SeriesData {
-                    name: "Daily Visitors".into(),
+                    name: "Q1-Q4 2023".into(),
                     x: Some(vec![
-                        Some(1.0),  Some(2.0),  Some(3.0),  Some(4.0),  Some(5.0),
-                        Some(6.0),  Some(7.0),  Some(8.0),  Some(9.0),  Some(10.0),
-                        Some(11.0), Some(12.0), Some(13.0), Some(14.0), Some(15.0),
-                        Some(16.0), Some(17.0), Some(18.0), Some(19.0), Some(20.0),
-                        Some(21.0), Some(22.0), Some(23.0), Some(24.0), Some(25.0),
+                        Some(15.0), Some(25.0), Some(35.0),
+                        Some(45.0), Some(55.0), Some(65.0),
+                        Some(75.0), Some(85.0),
                     ]),
                     values: vec![
-                        Some(245.0), Some(312.0), Some(198.0), Some(421.0), Some(356.0),
-                        Some(289.0), Some(445.0), Some(378.0), Some(512.0), Some(423.0),
-                        Some(489.0), Some(534.0), Some(478.0), Some(612.0), Some(545.0),
-                        Some(598.0), Some(623.0), Some(687.0), Some(634.0), Some(712.0),
-                        Some(745.0), Some(698.0), Some(823.0), Some(756.0), Some(834.0),
+                        Some(25.5), Some(35.2), Some(48.1),
+                        Some(52.3), Some(61.5), Some(68.8),
+                        Some(75.2), Some(82.1),
                     ],
-                    kind: ChartKind::Scatter,
+                    kind: ChartKind::ScatterLines,
                     color: series_color(&theme, 0),
-                    trendlines: vec![
-                        TrendlineData {
-                            spec: Trendline {
-                                kind: TrendlineKind::Linear,
-                                name: Some("Linear Trend".into()),
-                                forward: 0.0,
-                                backward: 0.0,
-                                intercept: None,
-                                display_equation: true,
-                                display_r_squared: true,
-                                color: None,
-                                width: Some(2.5),
-                                dash: None,
-                                label_size: 12.0,
-                            },
-                            color: iced::Color::from_rgba8(0xFF, 0x80, 0x00, 1.0),  // Orange for the trendline
-                        }
+                    ..Default::default()
+                },
+                SeriesData {
+                    name: "Q1-Q4 2024".into(),
+                    x: Some(vec![
+                        Some(18.0), Some(28.0), Some(38.0),
+                        Some(48.0), Some(58.0), Some(68.0),
+                        Some(78.0), Some(88.0),
+                    ]),
+                    values: vec![
+                        Some(28.2), Some(38.5), Some(51.3),
+                        Some(56.8), Some(65.2), Some(72.5),
+                        Some(79.8), Some(87.5),
                     ],
+                    kind: ChartKind::ScatterLines,
+                    color: series_color(&theme, 1),
                     ..Default::default()
                 },
             ],
             palette: vec![],
         };
         Example { 
-            grid: State::new(chart, data),
+            grid: ChartState::new(chart, data),
             selected_theme_str: "TokyoNight".to_string(),
             selected_theme: Theme::TokyoNight,
-         }
+        }
     }
 }
 
@@ -118,7 +110,6 @@ impl Example {
     }
 
     fn view(&self) -> impl Widget<Message> {
-
         let pl = PickList::new(
                 Some(self.selected_theme_str.clone()),
                 theme_strings(), 
@@ -133,6 +124,6 @@ impl Example {
             container(self.grid.view().map(|_| unreachable!()))
                 .padding(20).boxed()
         ]).padding(20.0).boxed()
-
     }
+    
 }

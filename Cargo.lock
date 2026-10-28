@@ -1096,7 +1096,7 @@ checksum = "7f24254aa9a54b5c858eaee2f5bccdb46aaf0e486a595ed5fd8f86ba55232a70"
 [[package]]
 name = "iced"
 version = "0.15.0-dev"
-source = "git+https://github.com/iced-rs/iced.git?branch=master#be88873d38544455e26c7a104eb757da2cbbac6b"
+source = "git+https://github.com/iced-rs/iced.git?branch=master#cd04b74ca7073766f654535d6e72c452ef749d07"
 dependencies = [
  "iced_core",
  "iced_debug",
@@ -1112,7 +1112,7 @@ dependencies = [
 [[package]]
 name = "iced_beacon"
 version = "0.15.0-dev"
-source = "git+https://github.com/iced-rs/iced.git?branch=master#be88873d38544455e26c7a104eb757da2cbbac6b"
+source = "git+https://github.com/iced-rs/iced.git?branch=master#cd04b74ca7073766f654535d6e72c452ef749d07"
 dependencies = [
  "bincode",
  "futures",
@@ -1129,6 +1129,7 @@ name = "iced_charts"
 version = "0.1.0"
 dependencies = [
  "iced",
+ "iced_menu",
  "once_cell",
  "regex",
  "serde",
@@ -1140,7 +1141,7 @@ dependencies = [
 [[package]]
 name = "iced_core"
 version = "0.15.0-dev"
-source = "git+https://github.com/iced-rs/iced.git?branch=master#be88873d38544455e26c7a104eb757da2cbbac6b"
+source = "git+https://github.com/iced-rs/iced.git?branch=master#cd04b74ca7073766f654535d6e72c452ef749d07"
 dependencies = [
  "bitflags",
  "bytes",
@@ -1160,7 +1161,7 @@ dependencies = [
 [[package]]
 name = "iced_debug"
 version = "0.15.0-dev"
-source = "git+https://github.com/iced-rs/iced.git?branch=master#be88873d38544455e26c7a104eb757da2cbbac6b"
+source = "git+https://github.com/iced-rs/iced.git?branch=master#cd04b74ca7073766f654535d6e72c452ef749d07"
 dependencies = [
  "iced_beacon",
  "iced_core",
@@ -1171,7 +1172,7 @@ dependencies = [
 [[package]]
 name = "iced_devtools"
 version = "0.15.0-dev"
-source = "git+https://github.com/iced-rs/iced.git?branch=master#be88873d38544455e26c7a104eb757da2cbbac6b"
+source = "git+https://github.com/iced-rs/iced.git?branch=master#cd04b74ca7073766f654535d6e72c452ef749d07"
 dependencies = [
  "iced_debug",
  "iced_program",
@@ -1182,7 +1183,7 @@ dependencies = [
 [[package]]
 name = "iced_futures"
 version = "0.15.0-dev"
-source = "git+https://github.com/iced-rs/iced.git?branch=master#be88873d38544455e26c7a104eb757da2cbbac6b"
+source = "git+https://github.com/iced-rs/iced.git?branch=master#cd04b74ca7073766f654535d6e72c452ef749d07"
 dependencies = [
  "futures",
  "iced_core",
@@ -1196,7 +1197,7 @@ dependencies = [
 [[package]]
 name = "iced_graphics"
 version = "0.15.0-dev"
-source = "git+https://github.com/iced-rs/iced.git?branch=master#be88873d38544455e26c7a104eb757da2cbbac6b"
+source = "git+https://github.com/iced-rs/iced.git?branch=master#cd04b74ca7073766f654535d6e72c452ef749d07"
 dependencies = [
  "bitflags",
  "bytemuck",
@@ -1212,9 +1213,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "iced_menu"
+version = "0.1.0"
+source = "git+https://github.com/ray-iced-projects/iced_menu.git#0017d9c8bc7bd0c1739fedeeb7d450c49b922bc8"
+dependencies = [
+ "iced",
+]
+
+[[package]]
 name = "iced_program"
 version = "0.15.0-dev"
-source = "git+https://github.com/iced-rs/iced.git?branch=master#be88873d38544455e26c7a104eb757da2cbbac6b"
+source = "git+https://github.com/iced-rs/iced.git?branch=master#cd04b74ca7073766f654535d6e72c452ef749d07"
 dependencies = [
  "iced_graphics",
  "iced_runtime",
@@ -1223,7 +1232,7 @@ dependencies = [
 [[package]]
 name = "iced_renderer"
 version = "0.15.0-dev"
-source = "git+https://github.com/iced-rs/iced.git?branch=master#be88873d38544455e26c7a104eb757da2cbbac6b"
+source = "git+https://github.com/iced-rs/iced.git?branch=master#cd04b74ca7073766f654535d6e72c452ef749d07"
 dependencies = [
  "iced_graphics",
  "iced_tiny_skia",
@@ -1235,7 +1244,7 @@ dependencies = [
 [[package]]
 name = "iced_runtime"
 version = "0.15.0-dev"
-source = "git+https://github.com/iced-rs/iced.git?branch=master#be88873d38544455e26c7a104eb757da2cbbac6b"
+source = "git+https://github.com/iced-rs/iced.git?branch=master#cd04b74ca7073766f654535d6e72c452ef749d07"
 dependencies = [
  "bytes",
  "iced_core",
@@ -1246,7 +1255,7 @@ dependencies = [
 [[package]]
 name = "iced_tiny_skia"
 version = "0.15.0-dev"
-source = "git+https://github.com/iced-rs/iced.git?branch=master#be88873d38544455e26c7a104eb757da2cbbac6b"
+source = "git+https://github.com/iced-rs/iced.git?branch=master#cd04b74ca7073766f654535d6e72c452ef749d07"
 dependencies = [
  "bytemuck",
  "cosmic-text",
@@ -1262,7 +1271,7 @@ dependencies = [
 [[package]]
 name = "iced_wgpu"
 version = "0.15.0-dev"
-source = "git+https://github.com/iced-rs/iced.git?branch=master#be88873d38544455e26c7a104eb757da2cbbac6b"
+source = "git+https://github.com/iced-rs/iced.git?branch=master#cd04b74ca7073766f654535d6e72c452ef749d07"
 dependencies = [
  "bitflags",
  "bytemuck",
@@ -1280,7 +1289,7 @@ dependencies = [
 [[package]]
 name = "iced_widget"
 version = "0.15.0-dev"
-source = "git+https://github.com/iced-rs/iced.git?branch=master#be88873d38544455e26c7a104eb757da2cbbac6b"
+source = "git+https://github.com/iced-rs/iced.git?branch=master#cd04b74ca7073766f654535d6e72c452ef749d07"
 dependencies = [
  "iced_renderer",
  "iced_runtime",
@@ -1294,7 +1303,7 @@ dependencies = [
 [[package]]
 name = "iced_winit"
 version = "0.15.0-dev"
-source = "git+https://github.com/iced-rs/iced.git?branch=master#be88873d38544455e26c7a104eb757da2cbbac6b"
+source = "git+https://github.com/iced-rs/iced.git?branch=master#cd04b74ca7073766f654535d6e72c452ef749d07"
 dependencies = [
  "arboard",
  "iced_debug",

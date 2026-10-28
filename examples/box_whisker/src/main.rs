@@ -2,7 +2,7 @@
 use iced::widget::{container, row, PickList};
 use iced::{Theme, Widget};
 use iced_charts::model::features::{ChartText, TextKind};
-use iced_charts::{State, Chart, ChartData, ChartKind, LegendPos, SeriesData};
+use iced_charts::{ChartState, Chart, ChartData, ChartKind, LegendPos, SeriesData};
 use iced_charts::resolve::series_color;
 use iced_charts::model::style::ChartTheme;
 use iced_charts::model::series_colors::{theme_strings, str_to_theme};
@@ -15,7 +15,7 @@ pub fn main() -> iced::Result {
 }
 
 struct Example {
-    grid: State,
+    grid: ChartState,
     selected_theme_str: String,
     selected_theme: Theme,
 }
@@ -70,7 +70,7 @@ impl Default for Example {
         };
         let selected_theme = Theme::TokyoNight;
         Example { 
-            grid: State::new(chart, data),
+            grid: ChartState::new(chart, data),
             selected_theme_str: "TokyoNight".to_string(),
             selected_theme,
         }
