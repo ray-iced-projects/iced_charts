@@ -7,12 +7,15 @@ use iced::advanced::text::Alignment;
 use serde::{Deserialize, Serialize};
 
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Chart {
     pub id: usize,
     pub kind: ChartKind,
+    #[serde(skip)]
     pub title: Option<ChartText>,
+    #[serde(skip)]
     pub x_title: Option<ChartText>,
+    #[serde(skip)]
     pub y_title: Option<ChartText>,
     pub series: Vec<Series>,
     pub legend: LegendPos,
@@ -104,6 +107,12 @@ pub struct ChartText {
     pub wrapping: Wrapping,
     pub ellipsis: Ellipsis,
     pub rotation: f32,
+}
+
+impl Default for ChartText {
+    fn default() -> Self {
+        Self::new(TextKind::Title)
+    }
 }
 
 impl ChartText {

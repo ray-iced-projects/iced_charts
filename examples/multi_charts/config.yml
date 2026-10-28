@@ -1,0 +1,30 @@
+charts:
+  - id: 1
+    kind: Scatter
+    title: "Four Quadrant Analysis - Centered at Origin (0, 0)"
+    x_title: "X Axis (-10 to 10)"
+    y_title: "Y Axis (-10 to 10)"
+    legend: "Bottom"
+    gridlines: true
+    data_labels: false
+    label_size: 12.0
+    series:
+      - name: "Quadrant I (+, +)"
+        kind: Scatter
+        x_values: [5.0, 3.0, 7.0, 5.0, 6.0, 4.0]
+        y_values: [5.0, 7.0, 2.0, 7.0, 4.0, 8.0]
+      
+      - name: "Quadrant II (-, +)"
+        kind: Scatter
+        x_values: [-5.0, -4.0, -7.0, -5.0, -4.0, -7.0]
+        y_values: [5.0, 3.0, 6.0, 4.0, 7.0, 5.0]
+      
+      - name: "Quadrant III (-, -)"
+        kind: Scatter
+        x_values: [-5.0, -3.0, -6.0, -5.0, -3.0, -6.0]
+        y_values: [-5.0, -6.0, -2.0, -4.0, -7.0, -3.0]
+      
+      - name: "Quadrant IV (+, -)"
+        kind: Scatter
+        x_values: [5.0, 4.0, 6.0, 5.0, 4.0, 6.0]
+        y_values: [-5.0, -4.0, -7.0, -6.0, -3.0, -5.0]

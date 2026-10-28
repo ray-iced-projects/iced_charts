@@ -14,6 +14,7 @@ pub mod numfmt;
 pub mod render;
 pub mod resolve;
 pub mod trend;
+pub mod config;
 
 
 pub use model::features::{Chart, ChartKind, LegendPos, SparklineKind, Trendline, TrendlineKind};
@@ -21,6 +22,7 @@ use serde::{Deserialize, Serialize};
 
 pub use axis::{Scale, format_number, nice_scale};
 pub use render::render;
+pub use config::load_chart_from_yaml;
 
 use crate::model::features::ChartText;
 
