@@ -1,0 +1,23 @@
+# Tidy/named CSV demo: PFE_ohlc.csv has unique header names, so columns
+# are selected by name. The Date column fills the chart categories and
+# each OHLC field becomes a named series.
+charts:
+  - id: 1
+    kind: Stock
+    title: "PFE OHLC from CSV (name-selected columns)"
+    x_title: "Date"
+    y_title: "Price"
+    legend: "Bottom"
+    gridlines: true
+    data_source:
+      file: "examples/data/PFE_ohlc.csv"
+      category_column: "Date"
+    series:
+      - name: "Open"
+        y_column: "Open"
+      - name: "High"
+        y_column: "High"
+      - name: "Low"
+        y_column: "Low"
+      - name: "Close"
+        y_column: "Close"

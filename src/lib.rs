@@ -15,6 +15,7 @@ pub mod render;
 pub mod resolve;
 pub mod trend;
 pub mod config;
+pub mod csv_data;
 
 
 pub use model::features::{Chart, ChartKind, LegendPos, SparklineKind, Trendline, TrendlineKind};
@@ -495,6 +496,68 @@ mod tests {
             assert!(color.b >= 0.0 && color.b <= 1.0, "Blue component out of range: {}", color.b);
             assert!(color.a >= 0.0 && color.a <= 1.0, "Alpha component out of range: {}", color.a);
         }
+    }
+
+    #[test]
+    fn test_csv_hybrid_index_columns() {
+        // Paired/wide CSV with duplicate headers: select columns by index.
+        use crate::config::load_chart_from_yaml;
+
+        let yaml = r#"
+charts:
+  - id: 1
+    kind: Scatter
+    title: "CSV index"
+    data_source:
+      file: "examples/data/scatter.csv"
+    series:
+      - name: "Data 0"
+        x_column: 1
+        y_column: 2
+      - name: "Inline"
+        x_values: [0.0]
+        y_values: [0.0]
+"#;
+        let config = load_chart_from_yaml(yaml).expect("parse yaml");
+        let data = config.charts[0]
+            .build_data(&Theme::Dark)
+            .expect("build data from csv");
+
+        assert_eq!(data.series.len(), 2);
+        // scatter.csv has 200 data rows; CSV-backed series should match.
+        assert_eq!(data.series[0].values.len(), 200);
+        assert!(data.series[0].x.as_ref().unwrap().len() == 200);
+        // Inline series coexists unchanged.
+        assert_eq!(data.series[1].values.len(), 1);
+    }
+
+    #[test]
+    fn test_csv_hybrid_named_columns() {
+        // Tidy CSV with unique headers: select columns by name + category column.
+        use crate::config::load_chart_from_yaml;
+
+        let yaml = r#"
+charts:
+  - id: 1
+    kind: Stock
+    title: "CSV named"
+    data_source:
+      file: "examples/data/PFE_ohlc.csv"
+      category_column: "Date"
+    series:
+      - name: "Close"
+        y_column: "Close"
+"#;
+        let config = load_chart_from_yaml(yaml).expect("parse yaml");
+        let data = config.charts[0]
+            .build_data(&Theme::Dark)
+            .expect("build data from csv");
+
+        assert_eq!(data.series.len(), 1);
+        // PFE_ohlc.csv has 201 data rows.
+        assert_eq!(data.series[0].values.len(), 201);
+        assert_eq!(data.categories.len(), 201);
+        assert_eq!(data.categories[0], "2025-01-02");
     }
 }
 

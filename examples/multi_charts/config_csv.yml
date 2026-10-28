@@ -1,0 +1,44 @@
+# Hybrid data demo: series pull from a CSV source by column index,
+# while inline series (x_values/y_values) can coexist in the same chart.
+#
+# scatter.csv is a "paired/wide" file with duplicate header names
+# (row, Data_0, Data_0, Data_1, Data_1, ...), so columns are selected
+# by zero-based index rather than by name.
+charts:
+  - id: 1
+    kind: Scatter
+    title: "Scatter from CSV (index-selected columns) + inline series"
+    x_title: "X"
+    y_title: "Y"
+    legend: "Bottom"
+    gridlines: true
+    data_labels: false
+    label_size: 12.0
+    data_source:
+      file: "examples/data/scatter.csv"
+    series:
+      - name: "Data 0"
+        kind: Scatter
+        x_column: 1
+        y_column: 2
+      - name: "Data 1"
+        kind: Scatter
+        x_column: 3
+        y_column: 4
+      - name: "Data 2"
+        kind: Scatter
+        x_column: 5
+        y_column: 6
+      - name: "Data 3"
+        kind: Scatter
+        x_column: 7
+        y_column: 8
+      - name: "Data 4"
+        kind: Scatter
+        x_column: 9
+        y_column: 10
+      # Inline series coexists with CSV-sourced series above
+      - name: "Inline marker"
+        kind: Scatter
+        x_values: [0.0]
+        y_values: [0.0]

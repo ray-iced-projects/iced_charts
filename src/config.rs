@@ -2,14 +2,24 @@
 use serde::{Deserialize, Serialize};
 use iced::Theme;
 use crate::model::features::{ChartText, TextKind};
-use crate::model::style::ChartTheme;
 use crate::resolve::series_color;
+use crate::csv_data::{ColumnRef, CsvError, CsvTable};
 use crate::{Chart, ChartData, ChartKind, ChartState, LegendPos, SeriesData};
 
 /// Configuration for loading charts from YAML/JSON
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ChartConfig {
     pub charts: Vec<ChartConfigItem>,
+}
+
+/// External CSV data source for a chart.
+#[derive(Debug, Serialize, Deserialize)]
+pub struct DataSource {
+    /// Path to the CSV file (resolved relative to the process working directory).
+    pub file: String,
+    /// Column providing category labels (fills `ChartData.categories`).
+    #[serde(default)]
+    pub category_column: Option<ColumnRef>,
 }
 
 /// Individual chart configuration
@@ -28,6 +38,9 @@ pub struct ChartConfigItem {
     pub data_labels: Option<bool>,
     #[serde(default)]
     pub label_size: Option<f32>,
+    /// Optional CSV source; series may pull columns from it instead of inline values.
+    #[serde(default)]
+    pub data_source: Option<DataSource>,
     pub series: Vec<SeriesConfig>,
 }
 
@@ -39,33 +52,65 @@ pub struct SeriesConfig {
     pub kind: Option<ChartKind>,
     #[serde(default)]
     pub x_values: Vec<f64>,
+    #[serde(default)]
     pub y_values: Vec<f64>,
     #[serde(default)]
     pub sizes: Vec<f64>,
+    /// CSV column for X values (overrides `x_values` when a data source is present).
+    #[serde(default)]
+    pub x_column: Option<ColumnRef>,
+    /// CSV column for Y values (overrides `y_values` when a data source is present).
+    #[serde(default)]
+    pub y_column: Option<ColumnRef>,
+    /// CSV column for bubble sizes (overrides `sizes` when a data source is present).
+    #[serde(default)]
+    pub size_column: Option<ColumnRef>,
 }
 
 impl SeriesConfig {
     /// Build a `SeriesData` from this config, resolving colour from the iced theme.
-    pub fn build_series(&self, index: usize, kind: ChartKind, _chart_theme: &ChartTheme, iced_theme: &Theme) -> SeriesData {
-        SeriesData {
-            name: self.name.clone().into(),
-            x: if self.x_values.is_empty() {
-                None
-            } else {
+    ///
+    /// When `table` is present, `*_column` selectors take precedence over inline values.
+    pub fn build_series(
+        &self,
+        index: usize,
+        kind: ChartKind,
+        iced_theme: &Theme,
+        table: Option<&CsvTable>,
+    ) -> Result<SeriesData, CsvError> {
+        let values = match (&self.y_column, table) {
+            (Some(col), Some(t)) => t.column_f64(col)?,
+            _ => self.y_values.iter().map(|&v| Some(v)).collect(),
+        };
+
+        let x = match (&self.x_column, table) {
+            (Some(col), Some(t)) => Some(t.column_f64(col)?),
+            _ if !self.x_values.is_empty() => {
                 Some(self.x_values.iter().map(|&v| Some(v)).collect())
-            },
-            values: self.y_values.iter().map(|&v| Some(v)).collect(),
-            sizes: if self.sizes.is_empty() {
-                None
-            } else {
+            }
+            _ => None,
+        };
+
+        let sizes = match (&self.size_column, table) {
+            (Some(col), Some(t)) => Some(t.column_f64(col)?),
+            _ if !self.sizes.is_empty() => {
                 Some(self.sizes.iter().map(|&v| Some(v)).collect())
-            },
+            }
+            _ => None,
+        };
+
+        Ok(SeriesData {
+            name: self.name.clone().into(),
+            x,
+            values,
+            sizes,
             kind: self.kind.unwrap_or(kind),
             color: series_color(iced_theme, index),
             ..Default::default()
-        }
+        })
     }
 }
+
 
 impl ChartConfigItem {
     /// Create a ChartText from the title field
@@ -116,24 +161,37 @@ impl ChartConfigItem {
     }
 
     /// Build the `ChartData` (all series with theme-resolved colours) from this config.
-    pub fn build_data(&self, chart_theme: &ChartTheme, iced_theme: &Theme) -> ChartData {
-        let series = self
-            .series
-            .iter()
-            .enumerate()
-            .map(|(idx, s)| s.build_series(idx, self.kind, chart_theme, iced_theme))
-            .collect();
+    ///
+    /// Loads the CSV data source once (if any) and resolves category/column data.
+    pub fn build_data(&self, iced_theme: &Theme) -> Result<ChartData, CsvError> {
+        let table = match &self.data_source {
+            Some(ds) => Some(CsvTable::load(&ds.file)?),
+            None => None,
+        };
 
-        ChartData {
-            categories: vec![],
+        let categories = match (&self.data_source, table.as_ref()) {
+            (Some(ds), Some(t)) => match &ds.category_column {
+                Some(col) => t.column_strings(col)?,
+                None => vec![],
+            },
+            _ => vec![],
+        };
+
+        let mut series = Vec::with_capacity(self.series.len());
+        for (idx, s) in self.series.iter().enumerate() {
+            series.push(s.build_series(idx, self.kind, iced_theme, table.as_ref())?);
+        }
+
+        Ok(ChartData {
+            categories,
             series,
             palette: vec![],
-        }
+        })
     }
 
     /// Build a ready-to-render `ChartState` (chart + data) from this config.
-    pub fn build_state(&self, chart_theme: &ChartTheme, iced_theme: &Theme) -> ChartState {
-        ChartState::new(self.build_chart(), self.build_data(chart_theme, iced_theme))
+    pub fn build_state(&self, iced_theme: &Theme) -> Result<ChartState, CsvError> {
+        Ok(ChartState::new(self.build_chart(), self.build_data(iced_theme)?))
     }
 }
 

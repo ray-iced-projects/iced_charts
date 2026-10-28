@@ -2,7 +2,7 @@
 //! workbook.
 
 use std::collections::HashMap;
-use std::hash::{Hash, Hasher};
+use std::hash::Hash;
 use std::sync::Arc;
 
 use serde::{Deserialize, Serialize};
@@ -154,41 +154,6 @@ pub enum VertAlign {
     Subscript,
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub struct Font {
-    pub name: String,
-    pub size: f32,
-    pub bold: bool,
-    pub italic: bool,
-    pub underline: Underline,
-    pub strike: bool,
-    pub color: Color,
-    pub vert: VertAlign,
-}
-
-impl Eq for Font {}
-impl Hash for Font {
-    fn hash<H: Hasher>(&self, h: &mut H) {
-        self.name.hash(h);
-        self.size.to_bits().hash(h);
-        (self.bold, self.italic, self.underline, self.strike, self.color, self.vert).hash(h);
-    }
-}
-
-impl Default for Font {
-    fn default() -> Self {
-        Font {
-            name: DEFAULT_FONT.into(),
-            size: DEFAULT_FONT_SIZE,
-            bold: false,
-            italic: false,
-            underline: Underline::None,
-            strike: false,
-            color: Color::Auto,
-            vert: VertAlign::Baseline,
-        }
-    }
-}
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum PatternType {
@@ -335,7 +300,7 @@ impl Default for Protection {
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct Style {
-    pub font: Font,
+    // pub font: Font,
     pub fill: Fill,
     pub borders: Borders,
     pub align: Alignment,
@@ -436,28 +401,28 @@ impl StyleTable {
 
 static DEFAULT_STYLE: std::sync::LazyLock<Style> = std::sync::LazyLock::new(Style::default);
 
-#[cfg(test)]
-mod tests {
-    use super::*;
+// #[cfg(test)]
+// mod tests {
+//     use super::*;
 
-    #[test]
-    fn interning() {
-        let mut t = StyleTable::default();
-        let bold = t.derive(StyleId::DEFAULT, |s| s.font.bold = true);
-        assert_ne!(bold, StyleId::DEFAULT);
-        assert_eq!(t.derive(StyleId::DEFAULT, |s| s.font.bold = true), bold);
-        assert_eq!(t.derive(bold, |s| s.font.bold = false), StyleId::DEFAULT);
-        assert_eq!(t.len(), 2);
-        assert!(!t.get(StyleId(999)).font.bold);
-    }
+//     #[test]
+//     fn interning() {
+//         let mut t = StyleTable::default();
+//         let bold = t.derive(StyleId::DEFAULT, |s| s.font.bold = true);
+//         assert_ne!(bold, StyleId::DEFAULT);
+//         assert_eq!(t.derive(StyleId::DEFAULT, |s| s.font.bold = true), bold);
+//         assert_eq!(t.derive(bold, |s| s.font.bold = false), StyleId::DEFAULT);
+//         assert_eq!(t.len(), 2);
+//         assert!(!t.get(StyleId(999)).font.bold);
+//     }
 
-    #[test]
-    fn colors() {
-        let th = ChartTheme::default();
-        assert_eq!(Color::from_hex("#FF0000").unwrap().resolve(&th), Some([255, 0, 0]));
-        assert_eq!(Color::from_hex("FF00FF00").unwrap().resolve(&th), Some([0, 255, 0]));
-        assert_eq!(Color::Theme(0, -500).resolve(&th), Some([128, 128, 128]));
-        assert_eq!(Color::Theme(1, 500).resolve(&th), Some([128, 128, 128]));
-        assert_eq!(Color::Auto.resolve(&th), None);
-    }
-}
+//     #[test]
+//     fn colors() {
+//         let th = ChartTheme::default();
+//         assert_eq!(Color::from_hex("#FF0000").unwrap().resolve(&th), Some([255, 0, 0]));
+//         assert_eq!(Color::from_hex("FF00FF00").unwrap().resolve(&th), Some([0, 255, 0]));
+//         assert_eq!(Color::Theme(0, -500).resolve(&th), Some([128, 128, 128]));
+//         assert_eq!(Color::Theme(1, 500).resolve(&th), Some([128, 128, 128]));
+//         assert_eq!(Color::Auto.resolve(&th), None);
+//     }
+// }

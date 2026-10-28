@@ -1,7 +1,6 @@
 use iced::widget::{container, column};
 use iced::{Task, Theme, Widget, window};
 use iced_charts::ChartState;
-use iced_charts::model::style::ChartTheme;
 use iced_charts::model::theme_helpers::{theme_strings, str_to_theme};
 use iced_charts::config::load_chart_from_yaml;
 
@@ -37,12 +36,13 @@ impl Default for Example {
         menu.is_open = vec![false; len];
 
         // Load chart configuration from YAML using library function
-        let config_content = include_str!("../config.yml");
-        let config = load_chart_from_yaml(config_content).expect("Failed to load config.yml");
-        let theme = ChartTheme::default();
+        let config_content = include_str!("../config_csv.yml");
+        let config = load_chart_from_yaml(config_content).expect("Failed to load config_csv.yml");
 
         // Build a ready-to-render chart state directly from the config
-        let grid = config.charts[0].build_state(&theme, &Theme::TokyoNight);
+        let grid = config.charts[0]
+            .build_state(&Theme::TokyoNight)
+            .expect("Failed to build chart state");
 
         Example {
             grid,
