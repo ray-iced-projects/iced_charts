@@ -1,12 +1,11 @@
 
 use std::f32::consts::PI;
 
-use iced::{Color, Font, Pixels, Point, alignment::{self, Vertical}, widget::{canvas, text::{Ellipsis, LineHeight, Shaping, Wrapping}}};
+use iced::{Color, Font, Pixels, Point, alignment::{self, Vertical},
+    widget::{canvas, text::{Ellipsis, LineHeight, Shaping, Wrapping}}};
 use iced::advanced::text::Alignment;
 use serde::{Deserialize, Serialize};
 
-
-const _AXIS_TITLE_SIZE: f32 = 10.0;
 
 #[derive(Clone, Debug)]
 pub struct Chart {
