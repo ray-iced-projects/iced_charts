@@ -10,6 +10,8 @@ use serde::{Deserialize, Serialize};
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Chart {
     pub id: usize,
+    pub width: f32,
+    pub height: f32,
     pub kind: ChartKind,
     #[serde(skip)]
     pub title: Option<ChartText>,
@@ -43,6 +45,8 @@ impl Default for Chart {
             source: None,
             by_rows: false,
             label_size: 12.0,
+            width: 800.0,
+            height: 800.0,
         }
     }
 }
@@ -199,6 +203,7 @@ pub enum TextKind {
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum ChartKind {
+    None,
     Area,
     AreaStacked,
     BarClustered,

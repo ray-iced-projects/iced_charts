@@ -226,17 +226,29 @@ pub struct ChartState {
 
 impl ChartState {
     pub fn new(chart: Chart, data: ChartData) -> Self {
-        ChartState { cache: canvas::Cache::default(), chart, data }
+        ChartState { 
+            cache: canvas::Cache::default(), 
+            chart, 
+            data, 
+        }
     }
 
     pub fn view<'a>(&'a self) -> impl Widget<()> {
         Canvas::new(Grid { state: self })
-            .width(800.0)
-            .height(800.0)
+            .width(self.chart.width)
+            .height(self.chart.height)
     }
 
     pub fn request_redraw(&mut self) {
         self.cache.clear();
+    }
+
+    pub fn set_width(&mut self, width: f32) {
+        self.chart.width = width;
+    }
+
+    pub fn set_height(&mut self, height: f32) {
+        self.chart.height = height;
     }
 }
 
