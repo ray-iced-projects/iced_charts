@@ -6,6 +6,8 @@ use iced_charts::config::load_chart_from_yaml;
 
 use iced_menu::{Menu, MenuMessage};
 
+use rfd::AsyncFileDialog;
+use native_dialog::DialogBuilder;
 
 pub fn main() -> iced::Result {
     iced::application(Example::default, Example::update, Example::view)
@@ -23,6 +25,9 @@ struct Example {
     selected_theme: Theme,
     menu: Menu<'static, MenuAction>,
     menu_state: MenuState,
+    file_path: PathBuf,
+    file_content: String,
+    is_loading: bool
 }
 
 impl Default for Example {
@@ -49,6 +54,9 @@ impl Default for Example {
             selected_theme: Theme::TokyoNight,
             menu,
             menu_state,
+            file_path: PathBuf::new(),
+            file_content: "".to_string(),
+            is_loading: false,
         }
     }
 }
@@ -56,11 +64,14 @@ impl Default for Example {
 #[derive(Debug, Clone)]
 enum Message {
     Menu(MenuMessage<MenuAction>),
+    LoadFile(PathBuf),
+    FileLoaded(String, String),
 }
 
 #[derive(Debug, Clone)]
 enum MenuAction {
     SetDarkMode(bool),
+
 }
 
 impl Example {
@@ -94,9 +105,40 @@ impl Example {
                     }
                 }
                 _ => self.menu.update(mm).map(Message::Menu)
-            }
+            },
+            Message::LoadFile(path) => {
+                let task = Task::perform(
+                    load_file(path.clone()),
+                    move |result| {
+                        match result {
+                            Ok(content) => {
+                                let file_name = path.file_name().map(|f| f.to_string_lossy().to_string());
+                                let file_content = content.to_string();
+                                Message::FileSystemWindow(
+                                    Message::FileLoaded(file_name, Some(file_content)),
+                                )
+                            },
+                            Err(e) => {
+                                eprintln!("[ERROR] Failed to load file: {:?}", e);
+                                Message::FileSystemWindow(id, Message::FileLoaded(None, None))
+                            }
+                        }
+                    },
+                );
+                
+                task
             
+            },
+            Message::FileLoaded(file_name, file_content) => {
+                
+                self.file_path = file_name;
+                self.file_content = file_content;
+                self.is_loading = false;
+                    
+                Task::none()
+            },
         }
+            
     }
 
     fn view(&self) -> impl Widget<Message> {
@@ -116,6 +158,7 @@ impl Example {
 }
 
 use iced_menu::{MenuConfig, MenuItem};
+use std::path::PathBuf;
 use std::rc::Rc;
 use iced::Element;
 
@@ -127,59 +170,20 @@ fn define_menu_configs(state: &MenuState) -> Vec<MenuConfig<'static, MenuAction>
             label: "File",
             width: 250.0,
             items: vec![
-                MenuItem::Item {
-                    label: "New File", size},
-                MenuItem::Item {
-                    label:"New Window", size},
-                MenuItem::SubMenu {
-                    config: MenuConfig {
-                        label: "New Window with Profile >",
-                        width: 200.0,
-                        items: vec![
-                            MenuItem::Item { label: "Profile 1", size },
-                            MenuItem::Item { label: "Profile 2", size },
-                            MenuItem::SubMenu {
-                                config: MenuConfig {
-                                    label: "Additional Profiles >",
-                                    width: 100.0,
-                                    items: vec![
-                                        MenuItem::Item {
-                                            label: "Profile 3",
-                                            size },
-                                        MenuItem::Item {
-                                            label: "Profile 4",
-                                            size },
-                                        MenuItem::Item {
-                                            label: "Profile 5",
-                                            size },
-                                    ],
-                                    ..Default::default()
-                                },
-                            },
-                        ],
-                        ..Default::default()
-                    },
-                },
-                MenuItem::Element(Rc::new(separator())),
                 MenuItem::Item { label: "Open File", size },
                 MenuItem::Item { label: "Open Folder", size },
-                MenuItem::Item { label: "Open Wokspace from File", size },
                 MenuItem::SubMenu {
                     config: MenuConfig {
                         label: "Open Recent >",
                         width: 240.0,
                         items: vec![
                             MenuItem::Item {
-                                label: "~/document/iced_menu", size },
+                                label: "", size },
                         ],
                         ..Default::default()
                     },
                 },
                 MenuItem::Element(Rc::new(separator())),
-                MenuItem::Item { label: "Save", size },
-                MenuItem::Item { label: "Save As...", size },
-                MenuItem::Item { label: "Save All", size },
-                MenuItem::Item { label: "Revert File", size },
                 MenuItem::Item { label: "Exit", size },
             ],
             ..Default::default()
@@ -241,3 +245,4 @@ fn dark_mode_toggle(checked: bool) -> impl Fn() -> Element<'static, MenuMessage<
             .boxed()
     }
 }
+
