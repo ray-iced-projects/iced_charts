@@ -1,10 +1,12 @@
 //! Iced charts (layer L3, toolkit-free).
 use iced::mouse;
+use iced::mouse::ScrollDelta;
 use iced::widget::canvas::{self, Canvas, Frame, Geometry, Path, Stroke};
 use iced::{
-    Point, Radians, Rectangle, Renderer, Size, Theme,
+    Event, Point, Radians, Rectangle, Renderer, Size, Theme,
     Vector, Widget,
 };
+use std::time::Instant;
 
 
 pub mod axis;
@@ -23,6 +25,7 @@ use serde::{Deserialize, Serialize};
 
 pub use axis::{Scale, format_number, nice_scale};
 pub use render::render;
+pub use render::{render_scene, ChartView, PlotMeta};
 pub use config::load_chart_from_yaml;
 
 use crate::model::features::ChartText;
@@ -80,22 +83,6 @@ mod color_serde {
 }
 
 
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
-pub enum HAlign {
-    #[default]
-    Left,
-    Center,
-    Right,
-}
-
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
-pub enum VAlign {
-    #[default]
-    Top,
-    Middle,
-    Bottom,
-}
-
 /// A drawing primitive in chart coordinates (origin top-left, y down, units = points/pixels).
 #[derive(Clone, Debug)]
 pub enum Prim {
@@ -142,6 +129,9 @@ pub enum Prim {
         width: f32,
     },
     Text(ChartText),
+    /// Clip marker: `Some(rect)` starts clipping subsequent prims to `rect`; `None` ends it.
+    /// Used for zoom/pan so series geometry outside the plot area is hidden.
+    Clip(Option<Rectangle>),
 }
 
 /// Measures text width (the UI passes real font metrics; tests use a fixed-width approximation).
@@ -200,7 +190,7 @@ impl Default for SeriesData {
             x: None,
             sizes: None,
             color: iced::Color::from_packed_rgba8(0x156082, 1.0),
-            kind: ChartKind::ColumnClustered,
+            kind: ChartKind::None,
             secondary: false,
             smooth: false,
             trendlines: vec![],
@@ -222,6 +212,7 @@ pub struct ChartState {
     cache: canvas::Cache,
     chart: Chart,
     data: ChartData,
+    view: ChartView,
 }
 
 impl ChartState {
@@ -230,10 +221,11 @@ impl ChartState {
             cache: canvas::Cache::default(), 
             chart, 
             data, 
+            view: ChartView::default(),
         }
     }
 
-    pub fn view<'a>(&'a self) -> impl Widget<()> {
+    pub fn view<'a>(&'a self) -> impl Widget<ChartMessage> {
         Canvas::new(Grid { state: self })
             .width(self.chart.width)
             .height(self.chart.height)
@@ -241,6 +233,38 @@ impl ChartState {
 
     pub fn request_redraw(&mut self) {
         self.cache.clear();
+    }
+
+    /// The current interactive view (zoom/pan overrides).
+    pub fn view_state(&self) -> ChartView {
+        self.view
+    }
+
+    /// Replace the interactive view (zoom/pan) and redraw.
+    pub fn set_view(&mut self, view: ChartView) {
+        self.view = view;
+        self.cache.clear();
+    }
+
+    /// Clear any zoom/pan and return to the auto-scaled view.
+    pub fn reset_view(&mut self) {
+        self.view = ChartView::default();
+        self.cache.clear();
+    }
+
+    /// Apply an interactive [`ChartMessage`] emitted by the canvas. Returns `true` if the view changed.
+    pub fn apply(&mut self, message: ChartMessage) -> bool {
+        match message {
+            ChartMessage::ViewChanged(view) => {
+                self.set_view(view);
+                true
+            }
+            ChartMessage::Reset => {
+                let changed = !self.view.is_default();
+                self.reset_view();
+                changed
+            }
+        }
     }
 
     pub fn set_width(&mut self, width: f32) {
@@ -252,12 +276,180 @@ impl ChartState {
     }
 }
 
+/// Messages emitted by an interactive chart canvas (zoom and pan).
+#[derive(Debug, Clone)]
+pub enum ChartMessage {
+    /// A new visible range was requested (scroll to zoom, or drag to pan).
+    ViewChanged(ChartView),
+    /// Reset to the auto-scaled view (double-click).
+    Reset,
+}
+
+/// Canvas interaction state: drag tracking for panning plus a click timestamp for double-click.
+#[derive(Debug, Default)]
+pub struct Interaction {
+    drag: Option<Drag>,
+    last_press: Option<Instant>,
+}
+
+#[derive(Debug, Clone, Copy)]
+struct Drag {
+    start: Point,
+    start_view: ChartView,
+    meta: PlotMeta,
+    moved: bool,
+}
+
+/// Cursor-anchored 1-D zoom. `anchor` is the fraction (0..1) under the cursor that stays fixed.
+fn zoom_1d(min: f64, max: f64, zoom_in: bool, anchor: f64) -> Option<(f64, f64)> {
+    let anchor = anchor.clamp(0.0, 1.0);
+    let size = max - min;
+    if !(size.is_finite() && size > 0.0) {
+        return None;
+    }
+    let factor = 0.12;
+    let av = min + anchor * size;
+    let new_size = if zoom_in { size * (1.0 - factor) } else { size * (1.0 + factor) };
+    if !(new_size.is_finite() && new_size > 1e-9) {
+        return None;
+    }
+    let nmin = av - anchor * new_size;
+    let nmax = av + (1.0 - anchor) * new_size;
+    (nmax > nmin && nmin.is_finite() && nmax.is_finite()).then_some((nmin, nmax))
+}
+
+fn scroll_sign(delta: &ScrollDelta) -> f32 {
+    match delta {
+        ScrollDelta::Lines { y, .. } | ScrollDelta::Pixels { y, .. } => *y,
+    }
+}
+
+/// Build the view for a scroll-zoom at `cursor`, anchored under the pointer.
+fn zoom_view(view: ChartView, meta: &PlotMeta, cursor: Point, zoom_in: bool) -> Option<ChartView> {
+    let plot = meta.plot;
+    if plot.width <= 0.0 || plot.height <= 0.0 {
+        return None;
+    }
+    let ax = ((cursor.x - plot.x) / plot.width).clamp(0.0, 1.0) as f64;
+    let ay = (((plot.y + plot.height) - cursor.y) / plot.height).clamp(0.0, 1.0) as f64;
+    let mut nv = view;
+    let mut changed = false;
+    if let Some(ny) = zoom_1d(meta.y.0, meta.y.1, zoom_in, ay) {
+        nv.y = Some(ny);
+        changed = true;
+    }
+    if let Some((x0, x1)) = meta.x {
+        if let Some(nx) = zoom_1d(x0, x1, zoom_in, ax) {
+            nv.x = Some(nx);
+            changed = true;
+        }
+    } else if let Some((c0, c1)) = meta.xcat {
+        if let Some(nc) = zoom_1d(c0, c1, zoom_in, ax) {
+            nv.xcat = Some(nc);
+            changed = true;
+        }
+    }
+    changed.then_some(nv)
+}
+
+/// Build the view for a pan drag of `(dx, dy)` pixels from the drag start.
+fn pan_view(drag: &Drag, dx: f32, dy: f32) -> ChartView {
+    let plot = drag.meta.plot;
+    let mut nv = drag.start_view;
+    let (y0, y1) = drag.meta.y;
+    let ddy = dy as f64 * (y1 - y0) / plot.height.max(1.0) as f64;
+    nv.y = Some((y0 + ddy, y1 + ddy));
+    if let Some((x0, x1)) = drag.meta.x {
+        let ddx = dx as f64 * (x1 - x0) / plot.width.max(1.0) as f64;
+        nv.x = Some((x0 - ddx, x1 - ddx));
+    } else if let Some((c0, c1)) = drag.meta.xcat {
+        let ddx = dx as f64 * (c1 - c0) / plot.width.max(1.0) as f64;
+        nv.xcat = Some((c0 - ddx, c1 - ddx));
+    }
+    nv
+}
+
 struct Grid<'a> {
     state: &'a ChartState,
 }
 
-impl <Message>canvas::Program<Message> for Grid<'_> {
-    type State = ();
+impl canvas::Program<ChartMessage> for Grid<'_> {
+    type State = Interaction;
+
+    fn update(
+        &self,
+        state: &mut Self::State,
+        event: &Event,
+        bounds: Rectangle,
+        cursor: mouse::Cursor,
+    ) -> Option<canvas::Action<ChartMessage>> {
+        let Some(pos) = cursor.position_in(bounds) else {
+            return None;
+        };
+        let Event::Mouse(mouse_event) = event else {
+            return None;
+        };
+
+        // Lay out the chart once so we know the plot rect and the visible data ranges.
+        let meta = || {
+            render_scene(
+                &self.state.chart,
+                &self.state.data,
+                bounds.width,
+                bounds.height,
+                &ApproxMeasure,
+                self.state.view,
+            )
+            .1
+        };
+
+        match mouse_event {
+            mouse::Event::WheelScrolled { delta } => {
+                let sign = scroll_sign(delta);
+                if sign == 0.0 {
+                    return None;
+                }
+                let meta = meta()?;
+                if !meta.plot.contains(pos) {
+                    return None;
+                }
+                let view = zoom_view(self.state.view, &meta, pos, sign > 0.0)?;
+                Some(canvas::Action::publish(ChartMessage::ViewChanged(view)).and_capture())
+            }
+            mouse::Event::ButtonPressed(mouse::Button::Left) => {
+                let meta = meta()?;
+                if !meta.plot.contains(pos) {
+                    return None;
+                }
+                // A second press within the double-click window resets the view.
+                if state.last_press.is_some_and(|t| t.elapsed().as_millis() < 350) {
+                    state.last_press = None;
+                    state.drag = None;
+                    return Some(canvas::Action::publish(ChartMessage::Reset).and_capture());
+                }
+                state.last_press = Some(Instant::now());
+                state.drag = Some(Drag { start: pos, start_view: self.state.view, meta, moved: false });
+                None
+            }
+            mouse::Event::CursorMoved { .. } => {
+                let drag = state.drag.as_mut()?;
+                let dx = pos.x - drag.start.x;
+                let dy = pos.y - drag.start.y;
+                if !drag.moved && (dx * dx + dy * dy).sqrt() <= 3.0 {
+                    return None;
+                }
+                drag.moved = true;
+                state.last_press = None; // a drag is not a click
+                let view = pan_view(drag, dx, dy);
+                Some(canvas::Action::publish(ChartMessage::ViewChanged(view)).and_capture())
+            }
+            mouse::Event::ButtonReleased(mouse::Button::Left) => {
+                state.drag = None;
+                None
+            }
+            _ => None,
+        }
+    }
 
     fn draw(
         &self,
@@ -280,30 +472,59 @@ impl <Message>canvas::Program<Message> for Grid<'_> {
                     .with_width(1.0),
             );
 
-            let prims = render(
+            let (prims, _) = render_scene(
                 &self.state.chart,
                 &self.state.data,
                 bounds.width,
                 bounds.height,
                 &ApproxMeasure,
+                self.state.view,
             );
-            for prim in &prims {
-                draw_prim(frame, prim, theme);
-            }
+            draw_prims(frame, &prims, theme);
         });
         vec![content]
     }
 
     fn mouse_interaction(
         &self,
-        _state: &Self::State,
+        state: &Self::State,
         bounds: Rectangle,
         cursor: mouse::Cursor,
     ) -> mouse::Interaction {
-        if cursor.is_over(bounds) {
+        if state.drag.is_some_and(|d| d.moved) {
+            mouse::Interaction::Grabbing
+        } else if cursor.is_over(bounds) {
             mouse::Interaction::Crosshair
         } else {
             mouse::Interaction::default()
+        }
+    }
+}
+
+/// Draws a prim list, honouring [`Prim::Clip`] markers by clipping bracketed prims to the plot rect.
+fn draw_prims(frame: &mut Frame, prims: &[Prim], theme: &Theme) {
+    let mut i = 0;
+    while i < prims.len() {
+        match &prims[i] {
+            Prim::Clip(Some(rect)) => {
+                let start = i + 1;
+                let mut end = start;
+                while end < prims.len() && !matches!(prims[end], Prim::Clip(None)) {
+                    end += 1;
+                }
+                let slice = &prims[start..end];
+                frame.with_clip(*rect, |f| {
+                    for p in slice {
+                        draw_prim(f, p, theme);
+                    }
+                });
+                i = end + 1;
+            }
+            Prim::Clip(None) => i += 1,
+            other => {
+                draw_prim(frame, other, theme);
+                i += 1;
+            }
         }
     }
 }
@@ -462,6 +683,7 @@ fn draw_prim(frame: &mut Frame, prim: &Prim, theme: &Theme) {
                 f.fill_text(text_obj);
             });
         },
+        Prim::Clip(_) => {}
     }
 }
 

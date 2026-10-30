@@ -8,7 +8,7 @@ use iced::advanced::text::Alignment;
 use iced::Theme;
 
 use crate::model::features::{Chart, ChartKind, ChartText, LegendPos, LineDash, TextKind, TrendlineKind};
-use crate::axis::{Fmt, Scale, clean, fixed_scale, nice_scale};
+use crate::axis::{Fmt, Scale, clean, fixed_scale, nice_scale, nice_scale_tight, range_scale};
 use crate::resolve::{MAX_POINTS, MAX_SERIES, MAX_TRENDLINES, series_color};
 use crate::trend::{auto_name, fit_trendline, moving_average};
 use crate::{ChartData, Measure, Prim, SeriesData};
@@ -24,6 +24,44 @@ pub(crate) const DOWN: iced::Color = iced::Color::from_packed_rgba8(0xD64F45, 1.
 
 
 const LABEL_SIZE: f32 = 10.0;
+
+/// Interactive view overrides applied on top of the automatic scales (zoom / pan).
+///
+/// When a field is `None` the axis auto-scales from the data as usual. When `Some`, the chart is
+/// drawn with exactly that visible range (and series geometry is clipped to the plot area).
+/// Only numeric line/scatter charts honour these.
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
+pub struct ChartView {
+    /// Numeric X range override, in data units (scatter charts).
+    pub x: Option<(f64, f64)>,
+    /// Numeric Y range override, in data units (line and scatter charts).
+    pub y: Option<(f64, f64)>,
+    /// Category-index X range override, in category-slot units (line/category charts).
+    /// `(0.0, n)` shows all `n` slots; a narrower range zooms the category axis.
+    pub xcat: Option<(f64, f64)>,
+}
+
+impl ChartView {
+    /// True when no override is active (chart auto-scales normally).
+    pub fn is_default(&self) -> bool {
+        self.x.is_none() && self.y.is_none() && self.xcat.is_none()
+    }
+}
+
+/// Layout facts produced by a render pass, used by interaction code to map the cursor to data.
+#[derive(Clone, Copy, Debug)]
+pub struct PlotMeta {
+    /// The plot rectangle in canvas pixels.
+    pub plot: iced::Rectangle,
+    /// Effective visible Y range (after any override), data units.
+    pub y: (f64, f64),
+    /// Effective visible numeric X range (scatter), data units.
+    pub x: Option<(f64, f64)>,
+    /// Number of category slots on the X axis (line/category charts).
+    pub ncat: Option<f64>,
+    /// Effective visible category-index X range (line/category charts).
+    pub xcat: Option<(f64, f64)>,
+}
 
 /// Most categories drawn by category-axis charts.
 const MAX_CATS: usize = 20_000;
@@ -63,6 +101,8 @@ impl Bx {
 struct Ctx<'a> {
     out: Vec<Prim>,
     m: &'a dyn Measure,
+    view: ChartView,
+    meta: Option<PlotMeta>,
 }
 
 impl Ctx<'_> {
@@ -225,11 +265,24 @@ fn sanitize(d: &ChartData) -> ChartData {
 
 /// Lays out and draws a chart into a `w`×`h` box at the origin. Empty for a degenerate box.
 pub fn render(chart: &Chart, data: &ChartData, w: f32, h: f32, m: &dyn Measure) -> Vec<Prim> {
+    render_scene(chart, data, w, h, m, ChartView::default()).0
+}
+
+/// Like [`render`], but applies interactive `view` overrides (zoom/pan) and also returns the plot
+/// layout so interaction code can map the cursor to data coordinates.
+pub fn render_scene(
+    chart: &Chart,
+    data: &ChartData,
+    w: f32,
+    h: f32,
+    m: &dyn Measure,
+    view: ChartView,
+) -> (Vec<Prim>, Option<PlotMeta>) {
     if !(w.is_finite() && h.is_finite()) || w < 1.0 || h < 1.0 || w > 1e7 || h > 1e7 {
-        return vec![];
+        return (vec![], None);
     }
     let data = sanitize(data);
-    let mut ctx = Ctx { out: Vec::new(), m };
+    let mut ctx = Ctx { out: Vec::new(), m, view, meta: None };
     let pad = (w.min(h) * 0.04).clamp(2.0, 10.0);
     let mut area = Bx { x: pad, y: pad, w: w - 2.0 * pad, h: h - 2.0 * pad };
     
@@ -249,7 +302,8 @@ pub fn render(chart: &Chart, data: &ChartData, w: f32, h: f32, m: &dyn Measure) 
     if area.ok() && !data.series.is_empty() {
         draw_kind(&mut ctx, chart, &data, area);
     }
-    finalize(ctx.out, w, h)
+    let meta = ctx.meta;
+    (finalize(ctx.out, w, h), meta)
 }
 
 fn draw_kind(ctx: &mut Ctx, chart: &Chart, data: &ChartData, area: Bx) {
@@ -464,13 +518,25 @@ fn frame(ctx: &mut Ctx, area: Bx, cat: CatAxis, y: &ValAxis, y2: Option<&ValAxis
         match cat {
             CatAxis::Labels(l) => {
                 let n = l.len().max(1);
-                let cw = plot.w / n as f32;
+                // Honour an xcat zoom override so labels track the zoomed category axis.
+                let (xc0, xc1) = match ctx.view.xcat {
+                    Some((a, b)) if b > a => (a, b),
+                    _ => (0.0, n as f64),
+                };
+                let xspan = (xc1 - xc0) as f32;
+                let cw = plot.w / xspan.max(1e-3);
                 let lw = l.iter().take(2000).map(|t| ctx.tw(t, ls)).fold(0.0f32, f32::max);
-                let k = (((lw + 6.0) / cw.max(1e-3)).ceil() as usize).clamp(1, n);
+                // Inflate the measured width (approximate metrics underestimate real fonts) and add a
+                // one-em gap so dense labels like dates don't overlap.
+                let k = ((((lw * 1.15 + ls) / cw.max(1e-3)).ceil()) as usize).clamp(1, n);
                 for (j, t) in l.iter().enumerate().step_by(k) {
+                    let fx = ((j as f32 + 0.5) - xc0 as f32) / xspan.max(1e-3);
+                    if !(-0.001..=1.001).contains(&fx) {
+                        continue;
+                    }
                     let t = ctx.fit(t, ls, cw * k as f32 - 2.0);
                     let mut ct = ChartText::new(TextKind::XAxisLabels);
-                    ct.x = plot.x + (j as f32 + 0.5) * cw;
+                    ct.x = plot.x + fx * plot.w;
                     ct.y = plot.bottom() + 3.0;
                     ct.content = t;
                     ctx.text(ct.x, ct.y, ct);
@@ -995,7 +1061,11 @@ fn cartesian(ctx: &mut Ctx, chart: &Chart, data: &ChartData, area: Bx, horizonta
         }
     }
     let Some((s1, f1)) = axes.first() else { return };
-    let y1 = ValAxis { scale: *s1, fmt: f1 };
+    let s1_eff = match ctx.view.y {
+        Some((lo, hi)) if !horizontal => range_scale(lo, hi),
+        _ => *s1,
+    };
+    let y1 = ValAxis { scale: s1_eff, fmt: f1 };
     let y2 = axes.get(1).map(|(s, f)| ValAxis { scale: *s, fmt: f });
     // A forward forecast on a category axis adds empty category slots after the data.
     let fwd = data
@@ -1011,10 +1081,23 @@ fn cartesian(ctx: &mut Ctx, chart: &Chart, data: &ChartData, area: Bx, horizonta
     if !plot.ok() {
         return;
     }
-    let scale_of = |i: usize| -> Scale { if sec.get(i).copied().unwrap_or(false) { y2.as_ref().map(|a| a.scale).unwrap_or(*s1) } else { *s1 } };
+    // Visible category-index range (xcat override), over [0, ncat_slots]. Zooms the category axis.
+    let (xc0, xc1) = match (horizontal, ctx.view.xcat) {
+        (false, Some((a, b))) if b > a => (a, b),
+        _ => (0.0, ncat_slots as f64),
+    };
+    let xspan = (xc1 - xc0) as f32;
+    ctx.meta = Some(PlotMeta {
+        plot: iced::Rectangle { x: plot.x, y: plot.y, width: plot.w, height: plot.h },
+        y: (y1.scale.min, y1.scale.max),
+        x: None,
+        ncat: Some(ncat_slots as f64),
+        xcat: Some((xc0, xc1)),
+    });
+    let scale_of = |i: usize| -> Scale { if sec.get(i).copied().unwrap_or(false) { y2.as_ref().map(|a| a.scale).unwrap_or(s1_eff) } else { s1_eff } };
     let cat_len = if horizontal { plot.h } else { plot.w };
-    let cw = cat_len / ncat_slots as f32;
-    let center = |j: usize| if horizontal { plot.bottom() - (j as f32 + 0.5) * cw } else { plot.x + (j as f32 + 0.5) * cw };
+    let cw = if horizontal { cat_len / ncat_slots as f32 } else { cat_len / xspan.max(1e-3) };
+    let center = |j: usize| if horizontal { plot.bottom() - (j as f32 + 0.5) * cw } else { plot.x + (((j as f32 + 0.5) - xc0 as f32) / xspan.max(1e-3)) * plot.w };
     let vpos = |v: f64, sc: &Scale| if horizontal { plot.x + sc.frac(v) * plot.w } else { plot.bottom() - sc.frac(v) * plot.h };
 
     // Column slots: each clustered series gets one, each stack group shares one.
@@ -1042,6 +1125,12 @@ fn cartesian(ctx: &mut Ctx, chart: &Chart, data: &ChartData, area: Bx, horizonta
     let labels_on = chart.data_labels && ncat <= MAX_LABELS;
     // Area labels wait until every area is filled, so a later (stacked) area can't paint over them.
     let mut area_labels = Vec::new();
+
+    // When zoomed/panned, clip series geometry to the plot so it can't spill into the axes/margins.
+    let clip = !ctx.view.is_default();
+    if clip {
+        ctx.out.push(Prim::Clip(Some(iced::Rectangle { x: plot.x, y: plot.y, width: plot.w, height: plot.h })));
+    }
 
     // Areas first, then columns, then lines on top.
     for pass in 0..3 {
@@ -1184,7 +1273,7 @@ fn cartesian(ctx: &mut Ctx, chart: &Chart, data: &ChartData, area: Bx, horizonta
         }
         let sc = scale_of(i);
         let pts: Vec<(f64, f64)> = s.values.iter().take(ncat).enumerate().filter_map(|(j, v)| v.map(|v| ((j + 1) as f64, v))).collect();
-        let frac = |x: f64, y: f64| ((x - 0.5) / ncat_slots as f64, (y - sc.min) / (sc.max - sc.min));
+        let frac = |x: f64, y: f64| (((x - 0.5) - xc0) / xspan.max(1e-3) as f64, (y - sc.min) / (sc.max - sc.min));
         let px = |(fx, fy): (f64, f64)| {
             if horizontal {
                 [plot.x + fy as f32 * plot.w, plot.bottom() - fx as f32 * plot.h]
@@ -1195,6 +1284,9 @@ fn cartesian(ctx: &mut Ctx, chart: &Chart, data: &ChartData, area: Bx, horizonta
         draw_trendlines(ctx, s, &pts, &frac, &px, &mut trend_labels);
     }
     draw_trend_labels(ctx, plot, &trend_labels);
+    if clip {
+        ctx.out.push(Prim::Clip(None));
+    }
 }
 
 // ---------------------------------------------------------------- scatter & bubble
@@ -1226,8 +1318,14 @@ fn scatter(ctx: &mut Ctx, chart: &Chart, data: &ChartData, area: Bx) {
         }
     }
     let Some((ylo, yhi)) = value_range(all.iter().flatten().flatten().map(|p| p.1)) else { return };
-    let xs = nice_scale(xlo, xhi, false);
-    let ys = nice_scale(ylo, yhi, false);
+    let xs = match ctx.view.x {
+        Some((lo, hi)) => range_scale(lo, hi),
+        None => nice_scale(xlo, xhi, false),
+    };
+    let ys = match ctx.view.y {
+        Some((lo, hi)) => range_scale(lo, hi),
+        None => nice_scale(ylo, yhi, false),
+    };
     let fx = Fmt::new("General");
     let fy = Fmt::new(data.series.first().map(|s| s.number_format.as_str()).unwrap_or("General"));
     
@@ -1236,6 +1334,17 @@ fn scatter(ctx: &mut Ctx, chart: &Chart, data: &ChartData, area: Bx) {
     
     if !plot.ok() {
         return;
+    }
+    ctx.meta = Some(PlotMeta {
+        plot: iced::Rectangle { x: plot.x, y: plot.y, width: plot.w, height: plot.h },
+        y: (ys.min, ys.max),
+        x: Some((xs.min, xs.max)),
+        ncat: None,
+        xcat: None,
+    });
+    let clip = !ctx.view.is_default();
+    if clip {
+        ctx.out.push(Prim::Clip(Some(iced::Rectangle { x: plot.x, y: plot.y, width: plot.w, height: plot.h })));
     }
     let map = |(x, y): (f64, f64)| [plot.x + xs.frac(x) * plot.w, plot.bottom() - ys.frac(y) * plot.h];
     let bubble = chart.kind == ChartKind::Bubble;
@@ -1312,6 +1421,9 @@ fn scatter(ctx: &mut Ctx, chart: &Chart, data: &ChartData, area: Bx) {
         draw_trendlines(ctx, s, &pts, &frac, &px, &mut trend_labels);
     }
     draw_trend_labels(ctx, plot, &trend_labels);
+    if clip {
+        ctx.out.push(Prim::Clip(None));
+    }
 }
 
 // ---------------------------------------------------------------- histogram
@@ -1892,11 +2004,31 @@ fn stock(ctx: &mut Ctx, chart: &Chart, data: &ChartData, area: Bx) {
     }
     let labels: Vec<String> = (0..ncat).map(|j| cat_label(data, j)).collect();
     let Some((lo, hi)) = value_range(data.series.iter().flat_map(|s| s.values.iter().flatten().copied())) else { return };
-    let ys = nice_scale(lo, hi, false);
+    let ys = match ctx.view.y {
+        Some((lo, hi)) => range_scale(lo, hi),
+        None => nice_scale_tight(lo, hi),
+    };
     let f = Fmt::new(data.series.first().map(|s| s.number_format.as_str()).unwrap_or("General"));
     let plot = frame(ctx, area, CatAxis::Labels(&labels), &ValAxis { scale: ys, fmt: &f }, None, false, chart.gridlines);
     if !plot.ok() {
         return;
+    }
+    // Visible category-index range (xcat override), over [0, ncat]. Zooms the (date) category axis.
+    let (xc0, xc1) = match ctx.view.xcat {
+        Some((a, b)) if b > a => (a, b),
+        _ => (0.0, ncat as f64),
+    };
+    let xspan = (xc1 - xc0) as f32;
+    ctx.meta = Some(PlotMeta {
+        plot: iced::Rectangle { x: plot.x, y: plot.y, width: plot.w, height: plot.h },
+        y: (ys.min, ys.max),
+        x: None,
+        ncat: Some(ncat as f64),
+        xcat: Some((xc0, xc1)),
+    });
+    let clip = !ctx.view.is_default();
+    if clip {
+        ctx.out.push(Prim::Clip(Some(iced::Rectangle { x: plot.x, y: plot.y, width: plot.w, height: plot.h })));
     }
     let ser = |k: usize| data.series.get(k);
     let (open, high, low, close) = match data.series.len() {
@@ -1907,11 +2039,11 @@ fn stock(ctx: &mut Ctx, chart: &Chart, data: &ChartData, area: Bx) {
         _ => (ser(0), ser(1), ser(2), ser(3)),
     };
     let get = |s: Option<&SeriesData>, j: usize| s.and_then(|s| s.values.get(j).copied().flatten());
-    let cw = plot.w / ncat as f32;
+    let cw = plot.w / xspan.max(1e-3);
     let tick = (cw * 0.25).max(1.0);
     let vy = |v: f64| plot.bottom() - ys.frac(v) * plot.h;
     for j in 0..ncat {
-        let c = plot.x + (j as f32 + 0.5) * cw;
+        let c = plot.x + (((j as f32 + 0.5) - xc0 as f32) / xspan.max(1e-3)) * plot.w;
         if let (Some(h), Some(l)) = (get(high, j), get(low, j)) {
             ctx.vline(c, vy(h), vy(l), STOCK, 1.25);
         }
@@ -1932,6 +2064,9 @@ fn stock(ctx: &mut Ctx, chart: &Chart, data: &ChartData, area: Bx) {
             _ => {}
         }
     }
+    if clip {
+        ctx.out.push(Prim::Clip(None));
+    }
 }
 
 // ---------------------------------------------------------------- final safety pass
@@ -1946,72 +2081,102 @@ fn clamp_stroke(s: Option<(iced::Color, f32)>) -> Option<(iced::Color, f32)> {
 
 /// Drops non-finite primitives and clamps every coordinate into the `w`×`h` box.
 pub(crate) fn finalize(prims: Vec<Prim>, w: f32, h: f32) -> Vec<Prim> {
-    let cx = |v: f32| v.clamp(0.0, w);
-    let cy = |v: f32| v.clamp(0.0, h);
     let pts_ok = |pts: &[[f32; 2]]| pts.iter().all(|p| fin(p[0]) && fin(p[1]));
-    prims
-        .into_iter()
-        .filter_map(|p| match p {
+    let mut out = Vec::with_capacity(prims.len());
+    let mut clip_depth = 0u32;
+    for p in prims {
+        // Clip markers pass through and toggle clamping: inside a clip region we keep true
+        // coordinates so the GPU clip cuts real geometry; outside, clamp to the canvas as before.
+        match &p {
+            Prim::Clip(Some(_)) => {
+                clip_depth += 1;
+                out.push(p);
+                continue;
+            }
+            Prim::Clip(None) => {
+                clip_depth = clip_depth.saturating_sub(1);
+                out.push(p);
+                continue;
+            }
+            _ => {}
+        }
+        let clamp = clip_depth == 0;
+        let cx = |v: f32| if clamp { v.clamp(0.0, w) } else { v };
+        let cy = |v: f32| if clamp { v.clamp(0.0, h) } else { v };
+        let kept = match p {
             Prim::Rect { x, y, w: rw, h: rh, fill, stroke, radius } => {
                 if !(fin(x) && fin(y) && fin(rw) && fin(rh)) {
-                    return None;
+                    None
+                } else {
+                    let (x0, x1) = (cx(x.min(x + rw)), cx(x.max(x + rw)));
+                    let (y0, y1) = (cy(y.min(y + rh)), cy(y.max(y + rh)));
+                    if x1 - x0 <= 0.0 || y1 - y0 <= 0.0 {
+                        None
+                    } else {
+                        let radius = if fin(radius) { radius.clamp(0.0, (x1 - x0).min(y1 - y0) / 2.0) } else { 0.0 };
+                        Some(Prim::Rect { x: x0, y: y0, w: x1 - x0, h: y1 - y0, fill, stroke: clamp_stroke(stroke), radius })
+                    }
                 }
-                let (x0, x1) = (cx(x.min(x + rw)), cx(x.max(x + rw)));
-                let (y0, y1) = (cy(y.min(y + rh)), cy(y.max(y + rh)));
-                if x1 - x0 <= 0.0 || y1 - y0 <= 0.0 {
-                    return None;
-                }
-                let radius = if fin(radius) { radius.clamp(0.0, (x1 - x0).min(y1 - y0) / 2.0) } else { 0.0 };
-                Some(Prim::Rect { x: x0, y: y0, w: x1 - x0, h: y1 - y0, fill, stroke: clamp_stroke(stroke), radius })
             },
             Prim::Line { pts, color, width, dash } => {
                 if !pts_ok(&pts) || pts.len() < 2 || !fin(width) {
-                    return None;
+                    None
+                } else {
+                    let pts = pts.into_iter().map(|p| [cx(p[0]), cy(p[1])]).collect();
+                    Some(Prim::Line { pts, color, width: width.clamp(0.1, 50.0), dash })
                 }
-                let pts = pts.into_iter().map(|p| [cx(p[0]), cy(p[1])]).collect();
-                Some(Prim::Line { pts, color, width: width.clamp(0.1, 50.0), dash })
             },
             Prim::Polygon { pts, fill, stroke } => {
                 if !pts_ok(&pts) || pts.len() < 3 {
-                    return None;
+                    None
+                } else {
+                    let pts = pts.into_iter().map(|p| [cx(p[0]), cy(p[1])]).collect();
+                    Some(Prim::Polygon { pts, fill, stroke: clamp_stroke(stroke) })
                 }
-                let pts = pts.into_iter().map(|p| [cx(p[0]), cy(p[1])]).collect();
-                Some(Prim::Polygon { pts, fill, stroke: clamp_stroke(stroke) })
             },
             Prim::Wedge { cx: x, cy: y, r_outer, r_inner, a0, a1, fill, stroke } => {
                 if ![x, y, r_outer, r_inner, a0, a1].iter().all(|v| fin(*v)) {
-                    return None;
+                    None
+                } else {
+                    let (x, y) = (cx(x), cy(y));
+                    let maxr = x.min(w - x).min(y).min(h - y);
+                    let ro = r_outer.min(maxr);
+                    if ro <= 0.0 {
+                        None
+                    } else {
+                        Some(Prim::Wedge { cx: x, cy: y, r_outer: ro, r_inner: r_inner.clamp(0.0, ro), a0, a1, fill, stroke: clamp_stroke(stroke) })
+                    }
                 }
-                let (x, y) = (cx(x), cy(y));
-                let maxr = x.min(w - x).min(y).min(h - y);
-                let ro = r_outer.min(maxr);
-                if ro <= 0.0 {
-                    return None;
-                }
-                Some(Prim::Wedge { cx: x, cy: y, r_outer: ro, r_inner: r_inner.clamp(0.0, ro), a0, a1, fill, stroke: clamp_stroke(stroke) })
             },
             Prim::Circle { cx: x, cy: y, r, fill, stroke } => {
                 if !(fin(x) && fin(y) && fin(r)) {
-                    return None;
+                    None
+                } else {
+                    let (x, y) = (cx(x), cy(y));
+                    // Inside a clip region, don't shrink markers against the canvas edge.
+                    let r = if clamp { r.min(x.min(w - x).min(y).min(h - y)) } else { r };
+                    if r <= 0.0 {
+                        None
+                    } else {
+                        Some(Prim::Circle { cx: x, cy: y, r, fill, stroke: clamp_stroke(stroke) })
+                    }
                 }
-                let (x, y) = (cx(x), cy(y));
-                let r = r.min(x.min(w - x).min(y).min(h - y));
-                if r <= 0.0 {
-                    return None;
-                }
-                Some(Prim::Circle { cx: x, cy: y, r, fill, stroke: clamp_stroke(stroke) })
             },
-            Prim::Grid { pts, width } => {
-                Some(Prim::Grid { pts, width })
-            },
+            Prim::Grid { pts, width } => Some(Prim::Grid { pts, width }),
             Prim::Text(ct) => {
                 if ct.content.is_empty() {
-                    return None;
+                    None
+                } else {
+                    Some(Prim::Text(ct))
                 }
-                Some(Prim::Text(ct))
             },
-        })
-        .collect()
+            Prim::Clip(_) => None,
+        };
+        if let Some(k) = kept {
+            out.push(k);
+        }
+    }
+    out
 }
 
 #[cfg(test)]

@@ -1,7 +1,7 @@
 use iced::Length::Fill;
 use iced::widget::{container, column};
 use iced::{Task, Theme, Widget, window};
-use iced_charts::{Chart, ChartData, ChartKind, ChartState};
+use iced_charts::{Chart, ChartData, ChartKind, ChartMessage, ChartState};
 use iced_charts::model::theme_helpers::str_to_theme;
 
 use iced_menu::{Menu, MenuMessage};
@@ -84,6 +84,7 @@ enum Message {
     Menu(MenuMessage<MenuAction>),
     FileLoaded(Result<(PathBuf, String), String>),
     DialogDismissed,
+    Chart(ChartMessage),
 }
 
 #[derive(Debug, Clone)]
@@ -190,6 +191,10 @@ impl Example {
                 }
             }
             Message::DialogDismissed => Task::none(),
+            Message::Chart(chart_msg) => {
+                self.grid.apply(chart_msg);
+                Task::none()
+            }
         }
     }
 
@@ -200,7 +205,7 @@ impl Example {
         container(
             column(vec![
                 menu.boxed(),
-                container(self.grid.view().map(|_| unreachable!()))
+                container(self.grid.view().map(Message::Chart))
                     .boxed()
             ]).padding(20.0).boxed()
         ).center(Fill).boxed()

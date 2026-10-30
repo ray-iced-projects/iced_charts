@@ -1,7 +1,7 @@
 use iced::widget::{PickList, container, row};
 use iced::{Theme, Widget};
 use iced_charts::model::features::{ChartText, TextKind};
-use iced_charts::{ChartState, Chart, ChartData, ChartKind, SeriesData};
+use iced_charts::{ChartState, Chart, ChartData, ChartKind, ChartMessage, SeriesData};
 use iced_charts::resolve::series_color;
 use iced_charts::model::theme_helpers::{theme_strings, str_to_theme};
 
@@ -81,6 +81,7 @@ impl Default for Example {
 #[derive(Debug, Clone)]
 enum Message {
     OnThemeSelect(String),
+    Chart(ChartMessage),
 }
 
 impl Example {
@@ -90,6 +91,9 @@ impl Example {
                 self.selected_theme_str = theme_str.clone();
                 self.selected_theme = str_to_theme(&theme_str);
                 self.grid.request_redraw();
+            }
+            Message::Chart(chart_msg) => {
+                self.grid.apply(chart_msg);
             }
         }
     }
@@ -107,7 +111,7 @@ impl Example {
         
         row(vec![
             pl,
-            container(self.grid.view().map(|_| unreachable!()))
+            container(self.grid.view().map(Message::Chart))
                 .padding(20).boxed()
         ]).padding(20.0).boxed()
     }

@@ -15,19 +15,25 @@ pub struct Scale {
 }
 
 impl Scale {
-    /// Tick values from `min` to `max` (at most 51).
+    /// Tick values from `min` to `max` (at most 51), at nice `step` multiples within the range.
     pub fn ticks(&self) -> Vec<f64> {
         let span = self.max - self.min;
         if !(span.is_finite() && self.step.is_finite() && self.step > 0.0 && span > 0.0) {
             return vec![self.min];
         }
-        let n = ((span / self.step).round() as i64).clamp(1, 50);
+        // First/last nice multiple inside [min, max]; keeps zoomed ticks from spilling past the axis.
+        let eps = self.step * 1e-6;
+        let start_i = ((self.min - eps) / self.step).ceil() as i64;
+        let end_i = ((self.max + eps) / self.step).floor() as i64;
+        if end_i < start_i {
+            return vec![self.min];
+        }
+        let n = (end_i - start_i).clamp(0, 50);
         (0..=n)
-            .map(|i| {
-                let v = self.min + i as f64 * self.step;
+            .map(|k| {
+                let v = (start_i + k) as f64 * self.step;
                 // Snap away accumulated float error.
-                let snapped = (v / self.step).round() * self.step;
-                if snapped.abs() < self.step * 1e-9 { 0.0 } else { snapped }
+                if v.abs() < self.step * 1e-9 { 0.0 } else { v }
             })
             .collect()
     }
@@ -109,6 +115,64 @@ pub fn nice_scale(lo: f64, hi: f64, force_zero: bool) -> Scale {
 
 /// Exact fixed scale (100% stacked axes).
 pub(crate) fn fixed_scale(min: f64, max: f64, step: f64) -> Scale {
+    Scale { min, max, step }
+}
+
+/// A "nice" gridline step (1/2/5 × 10ⁿ) for an arbitrary span, keeping the caller's exact min/max.
+/// Used by zoom/pan where the visible range is set directly but ticks should still land on round values.
+pub fn nice_step(span: f64) -> f64 {
+    let span = clean(span).abs();
+    if !(span.is_finite() && span > 0.0) {
+        return 1.0;
+    }
+    let e = (span / 8.0).log10().floor();
+    for k in [e - 1.0, e, e + 1.0, e + 2.0] {
+        let p = 10f64.powf(k);
+        for m in [1.0, 2.0, 5.0] {
+            let s = m * p;
+            if s.is_finite() && s > 0.0 && span / s <= 8.0 {
+                return s;
+            }
+        }
+    }
+    span / 5.0
+}
+
+/// A scale covering exactly `min..=max` with a nice gridline step (for zoom/pan overrides).
+pub fn range_scale(min: f64, max: f64) -> Scale {
+    let (min, max) = (clean(min), clean(max));
+    if !(min.is_finite() && max.is_finite()) || max <= min {
+        return Scale { min: 0.0, max: 1.0, step: 0.2 };
+    }
+    Scale { min, max, step: nice_step(max - min) }
+}
+
+/// A tight "nice" scale around the data that never forces zero (stock/price charts).
+///
+/// Pads the data range by ~5% on both sides, then rounds out to nice `step` multiples, so the data
+/// fills the plot instead of being pushed to one edge by a zero baseline.
+pub fn nice_scale_tight(lo: f64, hi: f64) -> Scale {
+    let (mut lo, mut hi) = (clean(lo), clean(hi));
+    if lo > hi {
+        std::mem::swap(&mut lo, &mut hi);
+    }
+    if lo == hi {
+        let pad = if lo == 0.0 { 1.0 } else { lo.abs() * 0.1 };
+        lo -= pad;
+        hi += pad;
+    }
+    let range = hi - lo;
+    if !(range.is_finite() && range > 0.0) {
+        return Scale { min: 0.0, max: 1.0, step: 0.2 };
+    }
+    let lo = lo - range * 0.05;
+    let hi = hi + range * 0.05;
+    let step = nice_step(hi - lo);
+    let min = (lo / step + 1e-9).floor() * step;
+    let max = (hi / step - 1e-9).ceil() * step;
+    if !(min.is_finite() && max.is_finite()) || max <= min {
+        return Scale { min: lo, max: hi, step: range };
+    }
     Scale { min, max, step }
 }
 

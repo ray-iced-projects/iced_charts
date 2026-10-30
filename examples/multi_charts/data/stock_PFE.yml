@@ -10,7 +10,7 @@ charts:
     legend: "Bottom"
     gridlines: true
     data_source:
-      file: "PFE_ohlc.csv"
+      file: "stock_PFE.csv"
       category_column: "Date"
     series:
       - name: "Open"
