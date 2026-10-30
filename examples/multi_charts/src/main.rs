@@ -1,3 +1,4 @@
+use iced::Length::Fill;
 use iced::widget::{container, column};
 use iced::{Task, Theme, Widget, window};
 use iced_charts::{Chart, ChartData, ChartKind, ChartState};
@@ -196,11 +197,13 @@ impl Example {
 
         let menu = self.menu.construct_menu().map(Message::Menu);
 
-        column(vec![
-            menu.boxed(),
-            container(self.grid.view().map(|_| unreachable!()))
-                .boxed()
-        ]).padding(20.0).boxed()
+        container(
+            column(vec![
+                menu.boxed(),
+                container(self.grid.view().map(|_| unreachable!()))
+                    .boxed()
+            ]).padding(20.0).boxed()
+        ).center(Fill).boxed()
     }
 
     fn theme(&self) -> Theme {
