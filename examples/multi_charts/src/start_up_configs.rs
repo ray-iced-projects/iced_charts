@@ -37,25 +37,35 @@ impl Default for StartupConfig {
 }
 
 impl StartupConfig {
-    /// Load config from the example's config.yml file
+    /// Load config from user_config.yml, creating it from config.yml if needed
     pub fn load() -> Self {
-        let config_path = Path::new(env!("CARGO_MANIFEST_DIR"))
-            .join("examples/multi_charts/config.yml");
+        let manifest_dir = Path::new(env!("CARGO_MANIFEST_DIR"));
+        let user_config_path = manifest_dir.join("examples/multi_charts/user_config.yml");
+        let template_config_path = manifest_dir.join("examples/multi_charts/config.yml");
 
-        if config_path.exists() {
-            if let Ok(content) = fs::read_to_string(&config_path) {
+        // If user_config.yml doesn't exist, create it from config.yml
+        if !user_config_path.exists() && template_config_path.exists() {
+            if let Ok(content) = fs::read_to_string(&template_config_path) {
+                let _ = fs::write(&user_config_path, content);
+            }
+        }
+
+        // Try to load from user_config.yml
+        if user_config_path.exists() {
+            if let Ok(content) = fs::read_to_string(&user_config_path) {
                 if let Ok(config) = serde_yaml::from_str::<StartupConfig>(&content) {
                     return config;
                 }
             }
         }
+
         StartupConfig::default()
     }
 
-    /// Save config to config.yml
+    /// Save config to user_config.yml
     pub fn save(&self) -> std::io::Result<()> {
         let config_path = Path::new(env!("CARGO_MANIFEST_DIR"))
-            .join("examples/multi_charts/config.yml");
+            .join("examples/multi_charts/user_config.yml");
 
         let yaml = serde_yaml::to_string(self)
             .map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidData, e.to_string()))?;
