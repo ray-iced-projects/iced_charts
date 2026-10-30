@@ -9,5 +9,15 @@ charts:
     series:
       - name: "Market Share"
         kind: Pie
-        categories: ["Company A", "Company B", "Company C", "Company D", "Company E", "Others"]
-        y_values: [28.0, 22.0, 18.0, 15.0, 12.0, 5.0]
+        categories:
+          - "TechVenture Inc"
+          - "DataFlow Systems"
+          - "CloudSync Corp"
+          - "NeuralWave AI"
+          - "SecureNet Solutions"
+          - "QuantumLeap Labs"
+          - "BioGenesis Innovations"
+          - "EcoGreen Energy"
+          - "FinanceFlow Partners"
+          - "MediaPulse Entertainment"
+        y_values: [18.5, 16.2, 14.8, 12.3, 11.7, 9.4, 7.2, 5.1, 3.8, 1.0]
