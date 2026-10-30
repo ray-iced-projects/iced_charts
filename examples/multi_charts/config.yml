@@ -1,7 +1,14 @@
 recent_files:
+- /home/charles/Documents/craft programs/my versions/iced_charts/examples/multi_charts/data/scatter_with_moving_average.yml
+- /home/charles/Documents/craft programs/my versions/iced_charts/examples/multi_charts/data/scatter_with_linear_trend.yml
+- /home/charles/Documents/craft programs/my versions/iced_charts/examples/multi_charts/data/scatter_lines.yml
+- /home/charles/Documents/craft programs/my versions/iced_charts/examples/multi_charts/data/stock_large_data.yml
 - /home/charles/Documents/craft programs/my versions/iced_charts/examples/multi_charts/data/config_csv.yml
-- /home/charles/Documents/craft programs/my versions/iced_charts/examples/multi_charts/data/config_scatter.yml
-- /home/charles/Documents/craft programs/my versions/iced_charts/examples/multi_charts/data/config_ohlc.yml
+- /home/charles/Documents/craft programs/my versions/iced_charts/examples/multi_charts/data/waterfall.yml
+- /home/charles/Documents/craft programs/my versions/iced_charts/examples/multi_charts/data/treemap.yml
+- /home/charles/Documents/craft programs/my versions/iced_charts/examples/multi_charts/data/sunburst.yml
+- /home/charles/Documents/craft programs/my versions/iced_charts/examples/multi_charts/data/stock.yml
+- /home/charles/Documents/craft programs/my versions/iced_charts/examples/multi_charts/data/radar.yml
 canvas_width: 800.0
 canvas_height: 800.0
 last_folder: /home/charles/Documents/craft programs/my versions/iced_charts/examples/multi_charts/data

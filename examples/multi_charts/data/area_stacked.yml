@@ -1,0 +1,25 @@
+charts:
+  - id: 1
+    kind: AreaStacked
+    title: "Website Traffic by Source"
+    x_title: "Month"
+    y_title: "Sessions"
+    legend: "Bottom"
+    gridlines: true
+    data_labels: false
+    label_size: 12.0
+    series:
+      - name: "Organic"
+        kind: AreaStacked
+        x_values: [1, 2, 3, 4, 5, 6]
+        y_values: [3200.0, 3500.0, 4100.0, 4800.0, 5200.0, 5600.0]
+      
+      - name: "Paid"
+        kind: AreaStacked
+        x_values: [1, 2, 3, 4, 5, 6]
+        y_values: [1200.0, 1400.0, 1600.0, 1800.0, 2000.0, 2200.0]
+      
+      - name: "Social"
+        kind: AreaStacked
+        x_values: [1, 2, 3, 4, 5, 6]
+        y_values: [800.0, 950.0, 1100.0, 1250.0, 1400.0, 1550.0]

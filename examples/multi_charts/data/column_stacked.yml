@@ -1,0 +1,25 @@
+charts:
+  - id: 1
+    kind: ColumnStacked
+    title: "Revenue by Product"
+    x_title: "Month"
+    y_title: "Revenue ($K)"
+    legend: "Bottom"
+    gridlines: true
+    data_labels: false
+    label_size: 12.0
+    series:
+      - name: "Product A"
+        kind: ColumnStacked
+        x_values: [1, 2, 3, 4, 5, 6]
+        y_values: [2200.0, 2400.0, 2800.0, 3200.0, 3400.0, 3800.0]
+      
+      - name: "Product B"
+        kind: ColumnStacked
+        x_values: [1, 2, 3, 4, 5, 6]
+        y_values: [1800.0, 2000.0, 2200.0, 2400.0, 2600.0, 2800.0]
+      
+      - name: "Product C"
+        kind: ColumnStacked
+        x_values: [1, 2, 3, 4, 5, 6]
+        y_values: [1000.0, 1200.0, 1400.0, 1600.0, 1800.0, 2000.0]

@@ -1,0 +1,22 @@
+charts:
+  - id: 1
+    kind: Bubble
+    title: "Company Growth Metrics"
+    x_title: "Years in Operation"
+    y_title: "Annual Revenue ($M)"
+    legend: "Bottom"
+    gridlines: true
+    data_labels: false
+    label_size: 12.0
+    series:
+      - name: "Tech Startups"
+        kind: Bubble
+        x_values: [1.0, 2.0, 3.0, 4.0, 5.0, 6.0]
+        y_values: [2.5, 5.2, 8.1, 12.5, 18.3, 25.7]
+        sizes: [50.0, 100.0, 150.0, 200.0, 250.0, 300.0]
+      
+      - name: "Established Firms"
+        kind: Bubble
+        x_values: [2.0, 3.0, 4.0, 5.0, 6.0]
+        y_values: [15.0, 22.0, 30.0, 40.0, 52.0]
+        sizes: [150.0, 200.0, 250.0, 300.0, 350.0]

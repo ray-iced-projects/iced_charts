@@ -1,0 +1,13 @@
+charts:
+  - id: 1
+    kind: Sunburst
+    title: "Organization Hierarchy"
+    legend: "Bottom"
+    gridlines: false
+    data_labels: false
+    label_size: 12.0
+    series:
+      - name: "Sunburst"
+        kind: Sunburst
+        categories: ["Engineering", "Product", "Marketing", "Sales", "Operations", "Finance"]
+        y_values: [450.0, 320.0, 180.0, 280.0, 150.0, 120.0]

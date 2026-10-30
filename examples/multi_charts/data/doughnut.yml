@@ -1,0 +1,13 @@
+charts:
+  - id: 1
+    kind: Doughnut
+    title: "Browser Usage Distribution"
+    legend: "Bottom"
+    gridlines: false
+    data_labels: false
+    label_size: 12.0
+    series:
+      - name: "Browser Usage"
+        kind: Doughnut
+        categories: ["Chrome", "Firefox", "Safari", "Edge", "Opera"]
+        y_values: [45.2, 24.8, 15.3, 10.5, 4.2]

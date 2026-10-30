@@ -1,0 +1,15 @@
+charts:
+  - id: 1
+    kind: Histogram
+    title: "Data Distribution"
+    x_title: "Value Range"
+    y_title: "Frequency"
+    legend: "Bottom"
+    gridlines: true
+    data_labels: false
+    label_size: 12.0
+    series:
+      - name: "Distribution"
+        kind: Histogram
+        categories: ["0-10", "10-20", "20-30", "30-40", "40-50", "50-60"]
+        y_values: [5.0, 12.0, 25.0, 18.0, 8.0, 2.0]

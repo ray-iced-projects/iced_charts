@@ -1,0 +1,20 @@
+charts:
+  - id: 1
+    kind: Area
+    title: "Revenue Trend"
+    x_title: "Quarter"
+    y_title: "Revenue ($K)"
+    legend: "Bottom"
+    gridlines: true
+    data_labels: false
+    label_size: 12.0
+    series:
+      - name: "Q1"
+        kind: Area
+        x_values: [1, 2, 3, 4, 5, 6]
+        y_values: [15.0, 25.0, 20.0, 30.0, 25.0, 35.0]
+      
+      - name: "Q2"
+        kind: Area
+        x_values: [1, 2, 3, 4, 5, 6]
+        y_values: [10.0, 18.0, 15.0, 22.0, 18.0, 28.0]

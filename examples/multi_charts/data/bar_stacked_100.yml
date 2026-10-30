@@ -1,0 +1,25 @@
+charts:
+  - id: 1
+    kind: BarStacked100
+    title: "Market Share Distribution"
+    x_title: "Year"
+    y_title: "Market Share %"
+    legend: "Bottom"
+    gridlines: true
+    data_labels: false
+    label_size: 12.0
+    series:
+      - name: "Company A"
+        kind: BarStacked100
+        x_values: [1, 2, 3, 4]
+        y_values: [35.0, 38.0, 40.0, 42.0]
+      
+      - name: "Company B"
+        kind: BarStacked100
+        x_values: [1, 2, 3, 4]
+        y_values: [28.0, 30.0, 32.0, 33.0]
+      
+      - name: "Company C"
+        kind: BarStacked100
+        x_values: [1, 2, 3, 4]
+        y_values: [37.0, 32.0, 28.0, 25.0]

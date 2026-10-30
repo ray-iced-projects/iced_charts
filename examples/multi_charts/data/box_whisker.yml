@@ -1,0 +1,17 @@
+charts:
+  - id: 1
+    kind: BoxWhisker
+    title: "Statistical Distribution"
+    x_title: "Categories"
+    y_title: "Values"
+    legend: "Bottom"
+    gridlines: true
+    data_labels: false
+    label_size: 12.0
+    series:
+      - name: "Dataset A"
+        kind: BoxWhisker
+        categories: ["Group 1", "Group 2", "Group 3"]
+        y_values: [45.0, 52.0, 48.0]
+        whisker_low: [35.0, 42.0, 38.0]
+        whisker_high: [55.0, 62.0, 58.0]

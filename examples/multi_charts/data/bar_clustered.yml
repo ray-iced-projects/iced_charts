@@ -1,0 +1,25 @@
+charts:
+  - id: 1
+    kind: BarClustered
+    title: "Sales by Region"
+    x_title: "Region"
+    y_title: "Sales ($K)"
+    legend: "Bottom"
+    gridlines: true
+    data_labels: false
+    label_size: 12.0
+    series:
+      - name: "Q1"
+        kind: BarClustered
+        x_values: [1, 2, 3, 4]
+        y_values: [28.0, 55.0, 43.0, 91.0]
+      
+      - name: "Q2"
+        kind: BarClustered
+        x_values: [1, 2, 3, 4]
+        y_values: [35.0, 68.0, 52.0, 78.0]
+      
+      - name: "Q3"
+        kind: BarClustered
+        x_values: [1, 2, 3, 4]
+        y_values: [42.0, 73.0, 61.0, 88.0]

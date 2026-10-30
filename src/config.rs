@@ -1,10 +1,10 @@
 //! Chart configuration loading from YAML or JSON files.
 use serde::{Deserialize, Serialize};
 use iced::Theme;
-use crate::model::features::{ChartText, TextKind};
+use crate::model::features::{ChartText, TextKind, Trendline};
 use crate::resolve::series_color;
 use crate::csv_data::{ColumnRef, CsvError, CsvTable};
-use crate::{Chart, ChartData, ChartKind, ChartState, LegendPos, SeriesData};
+use crate::{Chart, ChartData, ChartKind, ChartState, LegendPos, SeriesData, TrendlineData};
 
 /// Configuration for loading charts from YAML/JSON
 #[derive(Debug, Serialize, Deserialize)]
@@ -65,6 +65,9 @@ pub struct SeriesConfig {
     /// CSV column for bubble sizes (overrides `sizes` when a data source is present).
     #[serde(default)]
     pub size_column: Option<ColumnRef>,
+    /// Optional trendlines to display on this series.
+    #[serde(default)]
+    pub trendlines: Vec<Trendline>,
 }
 
 impl SeriesConfig {
@@ -99,6 +102,13 @@ impl SeriesConfig {
             _ => None,
         };
 
+        let trendlines = self.trendlines.iter()
+            .map(|tl| TrendlineData {
+                spec: tl.clone(),
+                color: tl.color.unwrap_or_else(|| series_color(iced_theme, index)),
+            })
+            .collect();
+
         Ok(SeriesData {
             name: self.name.clone().into(),
             x,
@@ -106,6 +116,7 @@ impl SeriesConfig {
             sizes,
             kind: self.kind.unwrap_or(kind),
             color: series_color(iced_theme, index),
+            trendlines,
             ..Default::default()
         })
     }

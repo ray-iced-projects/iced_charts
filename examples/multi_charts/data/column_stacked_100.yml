@@ -1,0 +1,25 @@
+charts:
+  - id: 1
+    kind: ColumnStacked100
+    title: "Product Mix by Region"
+    x_title: "Region"
+    y_title: "Product Mix %"
+    legend: "Bottom"
+    gridlines: true
+    data_labels: false
+    label_size: 12.0
+    series:
+      - name: "Product A"
+        kind: ColumnStacked100
+        x_values: [1, 2, 3, 4]
+        y_values: [45.0, 48.0, 50.0, 52.0]
+      
+      - name: "Product B"
+        kind: ColumnStacked100
+        x_values: [1, 2, 3, 4]
+        y_values: [35.0, 32.0, 30.0, 28.0]
+      
+      - name: "Product C"
+        kind: ColumnStacked100
+        x_values: [1, 2, 3, 4]
+        y_values: [20.0, 20.0, 20.0, 20.0]

@@ -1,0 +1,13 @@
+charts:
+  - id: 1
+    kind: Pie
+    title: "Market Share Distribution"
+    legend: "Bottom"
+    gridlines: false
+    data_labels: false
+    label_size: 12.0
+    series:
+      - name: "Market Share"
+        kind: Pie
+        categories: ["Company A", "Company B", "Company C", "Company D", "Company E", "Others"]
+        y_values: [28.0, 22.0, 18.0, 15.0, 12.0, 5.0]

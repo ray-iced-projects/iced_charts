@@ -1,0 +1,25 @@
+charts:
+  - id: 1
+    kind: ColumnClustered
+    title: "Sales by Quarter"
+    x_title: "Quarter"
+    y_title: "Sales ($K)"
+    legend: "Bottom"
+    gridlines: true
+    data_labels: false
+    label_size: 12.0
+    series:
+      - name: "2023"
+        kind: ColumnClustered
+        x_values: [1, 2, 3, 4]
+        y_values: [28.0, 55.0, 43.0, 91.0]
+      
+      - name: "2024"
+        kind: ColumnClustered
+        x_values: [1, 2, 3, 4]
+        y_values: [35.0, 68.0, 52.0, 78.0]
+      
+      - name: "2025"
+        kind: ColumnClustered
+        x_values: [1, 2, 3, 4]
+        y_values: [42.0, 73.0, 61.0, 88.0]
