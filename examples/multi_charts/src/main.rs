@@ -6,8 +6,6 @@ use iced_charts::model::theme_helpers::str_to_theme;
 
 use iced_menu::{Menu, MenuMessage};
 
-
-
 use std::fs;
 use std::path::{Path, PathBuf};
 
