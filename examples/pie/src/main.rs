@@ -43,17 +43,16 @@ impl Default for Example {
                         Some(15.0), Some(12.0), Some(5.0),
                     ],
                     kind: ChartKind::Pie,
-                    color: series_color(&theme, 0),
                     ..Default::default()
                 },
             ],
             palette: vec![
-                series_color(&theme, 1),
-                series_color(&theme, 2),
-                series_color(&theme, 3),
-                series_color(&theme, 4),
-                series_color(&theme, 5),
-                series_color(&theme, 6),
+                series_color(&theme, 0),
+                series_color(&theme, 0),
+                series_color(&theme, 0),
+                series_color(&theme, 0),
+                series_color(&theme, 0),
+                series_color(&theme, 0),
             ],
         };
         Example { 

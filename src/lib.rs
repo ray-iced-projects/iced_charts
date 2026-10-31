@@ -724,7 +724,7 @@ mod tests {
         let theme = Theme::TokyoNight;
 
         for i in 0..12 {
-            let color = crate::resolve::series_color(&theme, i);
+            let color = crate::resolve::series_color(&theme, i, 0.25);
             assert!(color.r >= 0.0 && color.r <= 1.0, "Red component out of range: {}", color.r);
             assert!(color.g >= 0.0 && color.g <= 1.0, "Green component out of range: {}", color.g);
             assert!(color.b >= 0.0 && color.b <= 1.0, "Blue component out of range: {}", color.b);

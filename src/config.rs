@@ -38,10 +38,18 @@ pub struct ChartConfigItem {
     pub data_labels: Option<bool>,
     #[serde(default)]
     pub label_size: Option<f32>,
+    /// Luminance threshold (0.0-1.0) for determining if background is dark (default: 0.25).
+    /// Values < threshold are considered dark; >= threshold are considered light.
+    #[serde(default = "default_dark_luminance_threshold")]
+    pub dark_luminance_threshold: f32,
     /// Optional CSV source; series may pull columns from it instead of inline values.
     #[serde(default)]
     pub data_source: Option<DataSource>,
     pub series: Vec<SeriesConfig>,
+}
+
+fn default_dark_luminance_threshold() -> f32 {
+    0.25
 }
 
 /// Series configuration
@@ -56,6 +64,8 @@ pub struct SeriesConfig {
     pub y_values: Vec<f64>,
     #[serde(default)]
     pub sizes: Vec<f64>,
+    #[serde(default)]
+    pub categories: Vec<String>,
     /// CSV column for X values (overrides `x_values` when a data source is present).
     #[serde(default)]
     pub x_column: Option<ColumnRef>,
@@ -80,6 +90,7 @@ impl SeriesConfig {
         kind: ChartKind,
         iced_theme: &Theme,
         table: Option<&CsvTable>,
+        dark_luminance_threshold: f32,
     ) -> Result<SeriesData, CsvError> {
         let values = match (&self.y_column, table) {
             (Some(col), Some(t)) => t.column_f64(col)?,
@@ -105,7 +116,7 @@ impl SeriesConfig {
         let trendlines = self.trendlines.iter()
             .map(|tl| TrendlineData {
                 spec: tl.clone(),
-                color: tl.color.unwrap_or_else(|| series_color(iced_theme, index)),
+                color: tl.color.unwrap_or_else(|| series_color(iced_theme, index, dark_luminance_threshold)),
             })
             .collect();
 
@@ -115,7 +126,7 @@ impl SeriesConfig {
             values,
             sizes,
             kind: self.kind.unwrap_or(kind),
-            color: series_color(iced_theme, index),
+            color: series_color(iced_theme, index, dark_luminance_threshold),
             trendlines,
             ..Default::default()
         })
@@ -168,6 +179,7 @@ impl ChartConfigItem {
         if let Some(label_size) = self.label_size {
             chart = chart.label_size(label_size);
         }
+        chart.dark_luminance_threshold = self.dark_luminance_threshold;
         chart
     }
 
@@ -185,12 +197,17 @@ impl ChartConfigItem {
                 Some(col) => t.column_strings(col)?,
                 None => vec![],
             },
-            _ => vec![],
+            _ => {
+                // If no data source, use categories from the first series (if available)
+                self.series.first()
+                    .map(|s| s.categories.clone())
+                    .unwrap_or_default()
+            }
         };
 
         let mut series = Vec::with_capacity(self.series.len());
         for (idx, s) in self.series.iter().enumerate() {
-            series.push(s.build_series(idx, self.kind, iced_theme, table.as_ref())?);
+            series.push(s.build_series(idx, self.kind, iced_theme, table.as_ref(), self.dark_luminance_threshold)?);
         }
 
         Ok(ChartData {

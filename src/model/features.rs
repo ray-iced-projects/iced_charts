@@ -27,6 +27,7 @@ pub struct Chart {
     pub source: Option<String>,
     pub by_rows: bool,
     pub label_size: f32,
+    pub dark_luminance_threshold: f32,
 }
 
 impl Default for Chart {
@@ -47,6 +48,7 @@ impl Default for Chart {
             label_size: 12.0,
             width: 800.0,
             height: 800.0,
+            dark_luminance_threshold: 0.25,
         }
     }
 }

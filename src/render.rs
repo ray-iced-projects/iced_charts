@@ -174,13 +174,13 @@ fn plot_kind(chart: &Chart, s: &SeriesData) -> ChartKind {
 }
 
 /// Colour of point `j` for charts that colour by point (pie, doughnut, treemap, sunburst).
-fn point_color(data: &ChartData, j: usize) -> iced::Color {
+fn point_color(data: &ChartData, chart: &Chart, j: usize) -> iced::Color {
     match (j, data.series.first()) {
         (0, Some(s)) => s.color,
         _ => j.checked_rem(data.palette.len())
             .and_then(|k| data.palette.get(k))
             .copied()
-            .unwrap_or_else(|| series_color(&Theme::Dark, j)),
+            .unwrap_or_else(|| series_color(&Theme::Dark, j, chart.dark_luminance_threshold)),
     }
 }
 
@@ -200,7 +200,7 @@ pub fn legend_entries(chart: &Chart, data: &ChartData) -> Vec<(String, iced::Col
     match chart.kind {
         ChartKind::Pie | ChartKind::Doughnut | ChartKind::Treemap | ChartKind::Sunburst => {
             let n = first_len(data).min(MAX_CATS);
-            (0..n).map(|j| (cat_label(data, j), point_color(data, j), Swatch::Box)).collect()
+            (0..n).map(|j| (cat_label(data, j), point_color(data, chart, j), Swatch::Box)).collect()
         }
         ChartKind::Histogram | ChartKind::Funnel | ChartKind::Stock => vec![],
         ChartKind::Waterfall => {
@@ -308,8 +308,8 @@ pub fn render_scene(
 
 fn draw_kind(ctx: &mut Ctx, chart: &Chart, data: &ChartData, area: Bx) {
     match chart.kind {
-        ChartKind::Pie => pie(ctx, chart, data, area, 0.0, false),
-        ChartKind::Doughnut => pie(ctx, chart, data, area, 0.5, false),
+        ChartKind::Pie => pie(ctx, chart, data, area, 0.0, true),
+        ChartKind::Doughnut => pie(ctx, chart, data, area, 0.5, true),
         ChartKind::Sunburst => pie(ctx, chart, data, area, 0.2, true),
         ChartKind::Treemap => treemap(ctx, chart, data, area),
         ChartKind::Funnel => funnel(ctx, chart, data, area),
@@ -1629,9 +1629,9 @@ fn pie(ctx: &mut Ctx, chart: &Chart, data: &ChartData, area: Bx, inner: f32, nam
     for (j, v) in vals.iter().enumerate() {
         let sweep = (*v / total) as f32 * TAU;
         if sweep > 1e-4 {
-            let fill = point_color(data, j);
+            let fill = point_color(data, chart, j);
             ctx.out.push(Prim::Wedge { cx, cy, r_outer: r, r_inner: ri, a0: a, a1: (a + sweep).min(TAU), fill, stroke: Some((WHITE, 1.5)) });
-            if (chart.data_labels || names) && vals.len() <= MAX_LABELS {
+            if chart.data_labels && vals.len() <= MAX_LABELS {
                 let t = if names { cat_label(data, j) } else { f.format(s.values.get(j).copied().flatten().unwrap_or(0.0), None) };
                 let mid = a + sweep / 2.0;
                 let rr = if ri > 0.0 { (r + ri) / 2.0 } else { r * 0.65 };
@@ -1733,7 +1733,7 @@ fn treemap(ctx: &mut Ctx, chart: &Chart, data: &ChartData, area: Bx) {
     items.sort_by(|a, b| b.1.total_cmp(&a.1));
     let f = Fmt::new(&s.number_format);
     for (j, b) in squarify(&items, area) {
-        let fill = point_color(data, j);
+        let fill = point_color(data, chart, j);
         ctx.rect(b.x, b.y, b.w, b.h, fill, Some((WHITE, 1.5)));
         if b.w > 24.0 && b.h > LABEL_SIZE * 1.6 {
             let _name = ctx.fit(&cat_label(data, j), LABEL_SIZE, b.w - 8.0);
