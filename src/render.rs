@@ -13,17 +13,36 @@ use crate::resolve::{MAX_POINTS, MAX_SERIES, MAX_TRENDLINES, series_color};
 use crate::trend::{auto_name, fit_trendline, moving_average};
 use crate::{ChartData, Measure, Prim, SeriesData};
 
-pub(crate) const TEXT: iced::Color = iced::Color::from_packed_rgba8(0x595959, 1.0);
-const DARK_TEXT: iced::Color = iced::Color::from_packed_rgba8(0x262626, 1.0);
-const GRID: iced::Color = iced::Color::from_packed_rgba8(0xD9D9D9, 1.0);
-const AXIS: iced::Color = iced::Color::from_packed_rgba8(0xBFBFBF, 1.0);
-const WHITE: iced::Color = iced::Color::WHITE;
-const STOCK: iced::Color = iced::Color::from_packed_rgba8(0x404040, 1.0);
 pub(crate) const UP: iced::Color = iced::Color::from_packed_rgba8(0x3E9B5F, 1.0);
 pub(crate) const DOWN: iced::Color = iced::Color::from_packed_rgba8(0xD64F45, 1.0);
 
 
 const LABEL_SIZE: f32 = 10.0;
+
+#[derive(Clone, Copy, Debug)]
+struct RenderColors {
+    axis: iced::Color,
+    grid: iced::Color,
+    light_text: iced::Color,
+    dark_text: iced::Color,
+    stock: iced::Color,
+}
+
+fn render_colors(theme: &Theme) -> RenderColors {
+    let bg = theme.palette().background;
+    let axis = bg.strong.color;
+    let grid = iced::Color::from_rgba(bg.weak.color.r, bg.weak.color.g, bg.weak.color.b, 0.75);
+    let light_text = bg.base.text;
+    let dark_text = bg.strongest.text;
+    let stock = bg.strong.text;
+    RenderColors {
+        axis,
+        grid,
+        light_text,
+        dark_text,
+        stock,
+    }
+}
 
 /// Interactive view overrides applied on top of the automatic scales (zoom / pan).
 ///
@@ -103,6 +122,7 @@ struct Ctx<'a> {
     m: &'a dyn Measure,
     view: ChartView,
     meta: Option<PlotMeta>,
+    colors: RenderColors,
 }
 
 impl Ctx<'_> {
@@ -154,9 +174,9 @@ impl Ctx<'_> {
 }
 
 /// Text colour readable on `fill`.
-fn on(fill: iced::Color) -> iced::Color {
+fn on(fill: iced::Color, colors: RenderColors) -> iced::Color {
     let l = 0.299 * fill.r + 0.587 * fill.g + 0.114 * fill.b;
-    if l < 0.5 { WHITE } else { DARK_TEXT }
+    if l < 0.5 { colors.light_text } else { colors.dark_text }
 }
 
 /// How a legend entry's swatch is drawn.
@@ -211,10 +231,9 @@ pub fn legend_entries(chart: &Chart, data: &ChartData) -> Vec<(String, iced::Col
         }
         ChartKind::Histogram | ChartKind::Funnel | ChartKind::Stock => vec![],
         ChartKind::Waterfall => {
-            if data.series.is_empty() {
+            let Some(total) = data.series.first().map(|s| s.color) else {
                 return vec![];
-            }
-            let total = data.series.first().map(|s| s.color).unwrap_or(TEXT);
+            };
             vec![("Increase".into(), UP, Swatch::Box), ("Decrease".into(), DOWN, Swatch::Box), ("Total".into(), total, Swatch::Box)]
         }
         _ => {
@@ -272,7 +291,7 @@ fn sanitize(d: &ChartData) -> ChartData {
 
 /// Lays out and draws a chart into a `w`×`h` box at the origin. Empty for a degenerate box.
 pub fn render(chart: &Chart, data: &ChartData, w: f32, h: f32, m: &dyn Measure) -> Vec<Prim> {
-    render_scene(chart, data, w, h, m, ChartView::default()).0
+    render_scene_with_theme(chart, data, w, h, m, ChartView::default(), &Theme::Dark).0
 }
 
 /// Like [`render`], but applies interactive `view` overrides (zoom/pan) and also returns the plot
@@ -285,11 +304,25 @@ pub fn render_scene(
     m: &dyn Measure,
     view: ChartView,
 ) -> (Vec<Prim>, Option<PlotMeta>) {
+    render_scene_with_theme(chart, data, w, h, m, view, &Theme::Dark)
+}
+
+/// Like [`render_scene`], but uses the provided Iced `theme` for neutral rendering colors
+/// (axes, gridlines, stock strokes, and contrast label text).
+pub fn render_scene_with_theme(
+    chart: &Chart,
+    data: &ChartData,
+    w: f32,
+    h: f32,
+    m: &dyn Measure,
+    view: ChartView,
+    theme: &Theme,
+) -> (Vec<Prim>, Option<PlotMeta>) {
     if !(w.is_finite() && h.is_finite()) || w < 1.0 || h < 1.0 || w > 1e7 || h > 1e7 {
         return (vec![], None);
     }
     let data = sanitize(data);
-    let mut ctx = Ctx { out: Vec::new(), m, view, meta: None };
+    let mut ctx = Ctx { out: Vec::new(), m, view, meta: None, colors: render_colors(theme) };
     let pad = (w.min(h) * 0.04).clamp(2.0, 10.0);
     let mut area = Bx { x: pad, y: pad, w: w - 2.0 * pad, h: h - 2.0 * pad };
     
@@ -314,10 +347,11 @@ pub fn render_scene(
 }
 
 fn draw_kind(ctx: &mut Ctx, chart: &Chart, data: &ChartData, area: Bx) {
+    let pie_inner = |default: f32| chart.pie_inner.unwrap_or(default).clamp(0.0, 0.95);
     match chart.kind {
-        ChartKind::Pie => pie(ctx, chart, data, area, 0.0, true),
-        ChartKind::Doughnut => pie(ctx, chart, data, area, 0.5, true),
-        ChartKind::Sunburst => pie(ctx, chart, data, area, 0.2, true),
+        ChartKind::Pie => pie(ctx, chart, data, area, pie_inner(0.0), true),
+        ChartKind::Doughnut => pie(ctx, chart, data, area, pie_inner(0.5), true),
+        ChartKind::Sunburst => pie(ctx, chart, data, area, pie_inner(0.2), true),
         ChartKind::Treemap => treemap(ctx, chart, data, area),
         ChartKind::Funnel => funnel(ctx, chart, data, area),
         ChartKind::Radar => radar(ctx, chart, data, area),
@@ -521,7 +555,7 @@ fn frame(ctx: &mut Ctx, area: Bx, cat: CatAxis, y: &ValAxis, y2: Option<&ValAxis
         }
         let zero = if y.scale.min <= 0.0 && y.scale.max >= 0.0 { 0.0 } else { y.scale.min };
         let y0 = plot.bottom() - y.scale.frac(zero) * plot.h;
-        ctx.hline(plot.x, plot.right(), y0, AXIS, 0.75);
+        ctx.hline(plot.x, plot.right(), y0, ctx.colors.axis, 0.75);
         match cat {
             CatAxis::Labels(l) => {
                 let n = l.len().max(1);
@@ -568,7 +602,7 @@ fn frame(ctx: &mut Ctx, area: Bx, cat: CatAxis, y: &ValAxis, y2: Option<&ValAxis
                 }
                 if s.min <= 0.0 && s.max >= 0.0 {
                     let xx = plot.x + s.frac(0.0) * plot.w;
-                    ctx.vline(xx, plot.y, plot.bottom(), AXIS, 0.75);
+                    ctx.vline(xx, plot.y, plot.bottom(), ctx.colors.axis, 0.75);
                 }
             }
         }
@@ -605,7 +639,7 @@ fn frame(ctx: &mut Ctx, area: Bx, cat: CatAxis, y: &ValAxis, y2: Option<&ValAxis
         }
         let zero = if y.scale.min <= 0.0 && y.scale.max >= 0.0 { 0.0 } else { y.scale.min };
         let x0 = plot.x + y.scale.frac(zero) * plot.w;
-        ctx.vline(x0, plot.y, plot.bottom(), AXIS, 0.75);
+        ctx.vline(x0, plot.y, plot.bottom(), ctx.colors.axis, 0.75);
         let n = labels.len().max(1);
         let ch = plot.h / n as f32;
         let k = ((lh / ch.max(1e-3)).ceil() as usize).clamp(1, n);
@@ -747,7 +781,7 @@ fn draw_markers(ctx: &mut Ctx, pts: impl Iterator<Item = [f32; 2]>, r: f32, colo
             break;
         }
         if seen.insert(((p[0] * 0.5) as i32, (p[1] * 0.5) as i32)) {
-            ctx.out.push(Prim::Circle { cx: p[0], cy: p[1], r, fill: Some(color), stroke: Some((WHITE, 0.75)) });
+            ctx.out.push(Prim::Circle { cx: p[0], cy: p[1], r, fill: Some(color), stroke: Some((ctx.colors.light_text, 0.75)) });
         }
     }
 }
@@ -1392,7 +1426,7 @@ fn scatter(ctx: &mut Ctx, chart: &Chart, data: &ChartData, area: Bx) {
             let fill = iced::Color::from_rgba(s.color.r, s.color.g, s.color.b, 0xC0 as f32 / 255.0);
             for (p, sz) in bubbles {
                 let r = ((sz / smax).sqrt() as f32 * rmax * scale_factor).max(1.0);
-                ctx.out.push(Prim::Circle { cx: p[0], cy: p[1], r, fill: Some(fill), stroke: Some((WHITE, 0.75)) });
+                ctx.out.push(Prim::Circle { cx: p[0], cy: p[1], r, fill: Some(fill), stroke: Some((ctx.colors.light_text, 0.75)) });
             }
         } else {
             let lines = chart.kind == ChartKind::ScatterLines || s.kind == Some(ChartKind::ScatterLines);
@@ -1476,7 +1510,7 @@ fn histogram(ctx: &mut Ctx, chart: &Chart, data: &ChartData, area: Bx) {
     for (b, c) in counts.iter().enumerate() {
         let top = plot.bottom() - ys.frac(*c as f64) * plot.h;
         let x = plot.x + b as f32 * cw;
-        ctx.rect(x, top, cw, plot.bottom() - top, s.color, Some((WHITE, 0.75)));
+        ctx.rect(x, top, cw, plot.bottom() - top, s.color, Some((ctx.colors.light_text, 0.75)));
         if chart.data_labels {
             let mut ct = ChartText::new(TextKind::Text);
             ct.x = x + cw / 2.0;
@@ -1543,7 +1577,7 @@ fn waterfall(ctx: &mut Ctx, chart: &Chart, data: &ChartData, area: Bx) {
         let (yb, yt) = (vy(*b), vy(*t));
         ctx.rect(x, yb.min(yt), bw, (yb - yt).abs().max(0.5), color, None);
         if j + 1 < bars.len() && ncat <= 500 {
-            ctx.out.push(Prim::Line { pts: vec![[x + bw, yt], [x + cw, yt]], color: AXIS, width: 0.75, dash: true });
+            ctx.out.push(Prim::Line { pts: vec![[x + bw, yt], [x + cw, yt]], color: ctx.colors.axis, width: 0.75, dash: true });
         }
         if chart.data_labels && ncat <= MAX_LABELS {
             let v = if *kind == 0 { *t } else { t - b };
@@ -1637,26 +1671,34 @@ fn pie(ctx: &mut Ctx, chart: &Chart, data: &ChartData, area: Bx, inner: f32, nam
         let sweep = (*v / total) as f32 * TAU;
         if sweep > 1e-4 {
             let fill = point_color(data, chart, j);
-            ctx.out.push(Prim::Wedge { cx, cy, r_outer: r, r_inner: ri, a0: a, a1: (a + sweep).min(TAU), fill, stroke: Some((WHITE, 1.5)) });
+            ctx.out.push(Prim::Wedge { cx, cy, r_outer: r, r_inner: ri, a0: a, a1: (a + sweep).min(TAU), fill, stroke: Some((ctx.colors.light_text, 1.5)) });
             if chart.data_labels && vals.len() <= MAX_LABELS {
                 let t = if names { cat_label(data, j) } else { f.format(s.values.get(j).copied().flatten().unwrap_or(0.0), None) };
                 let mid = a + sweep / 2.0;
                 let rr = if ri > 0.0 { (r + ri) / 2.0 } else { r * 0.65 };
                 let room = sweep * rr;
-                if ctx.tw(&t, LABEL_SIZE) <= room.max(r - ri) && room >= LABEL_SIZE {
-                    labels.push((cx + rr * mid.sin(), cy - rr * mid.cos(), t, on(fill)));
+                if ctx.tw(&t, chart.label_size) <= room.max(r - ri) && room >= chart.label_size {
+                    // For pie-like wedges, fallback label color should contrast with the slice fill,
+                    // not the app background/theme text color.
+                    labels.push((cx + rr * mid.sin(), cy - rr * mid.cos(), t, on(fill, ctx.colors)));
                 }
             }
         }
         a += sweep;
     }
-    for (x, y, t, _c) in labels {
+    for (x, y, t, c) in labels {
         let mut ct = ChartText::new(TextKind::Text);
+        let color = if let Some(lc) = chart.label_color {
+            lc
+        } else { c };
+        
         ct.x = x;
         ct.y = y;
         ct.content = t;
         ct.align_x = Alignment::Center;
         ct.align_y = Vertical::Center;
+        ct.color = color;
+        ct.size = chart.label_size; 
         ctx.text(x, y, ct);
     }
 }
@@ -1741,7 +1783,7 @@ fn treemap(ctx: &mut Ctx, chart: &Chart, data: &ChartData, area: Bx) {
     let f = Fmt::new(&s.number_format);
     for (j, b) in squarify(&items, area) {
         let fill = point_color(data, chart, j);
-        ctx.rect(b.x, b.y, b.w, b.h, fill, Some((WHITE, 1.5)));
+        ctx.rect(b.x, b.y, b.w, b.h, fill, Some((ctx.colors.light_text, 1.5)));
         if b.w > 24.0 && b.h > LABEL_SIZE * 1.6 {
             let _name = ctx.fit(&cat_label(data, j), LABEL_SIZE, b.w - 8.0);
             let mut ct = ChartText::new(TextKind::Text);
@@ -1850,7 +1892,7 @@ fn radar(ctx: &mut Ctx, chart: &Chart, data: &ChartData, area: Bx) {
             }
             
             // Draw the ring as a line with GRID color
-            ctx.line(ring, GRID, 0.75);
+            ctx.line(ring, ctx.colors.grid, 0.75);
         }
         
         // Draw value label (e.g., "100") on the vertical axis if this tick should be labeled
@@ -1878,7 +1920,7 @@ fn radar(ctx: &mut Ctx, chart: &Chart, data: &ChartData, area: Bx) {
         let a = ang(j);
         
         // Draw a spoke from center to the perimeter at this angle
-        ctx.line(vec![[cx, cy], pt(a, r)], GRID, 0.75);
+        ctx.line(vec![[cx, cy], pt(a, r)], ctx.colors.grid, 0.75);
         
         // Place the label at the vertex with radial offset only
         let p = pt(a, r + 6.0);
@@ -1992,10 +2034,10 @@ fn box_whisker(ctx: &mut Ctx, chart: &Chart, data: &ChartData, area: Bx) {
         ctx.hline(c - bw / 4.0, c + bw / 4.0, vy(wlo), s.color, 1.25);
         let (yt, yb) = (vy(q3), vy(q1));
         ctx.rect(c - bw / 2.0, yt, bw, (yb - yt).max(0.5), s.color, None);
-        ctx.hline(c - bw / 2.0, c + bw / 2.0, vy(med), WHITE, 1.5);
+        ctx.hline(c - bw / 2.0, c + bw / 2.0, vy(med), ctx.colors.light_text, 1.5);
         let (mx, my, d) = (c, vy(mean), 3.0);
-        ctx.line(vec![[mx - d, my - d], [mx + d, my + d]], WHITE, 1.25);
-        ctx.line(vec![[mx - d, my + d], [mx + d, my - d]], WHITE, 1.25);
+        ctx.line(vec![[mx - d, my - d], [mx + d, my + d]], ctx.colors.light_text, 1.25);
+        ctx.line(vec![[mx - d, my + d], [mx + d, my - d]], ctx.colors.light_text, 1.25);
         for o in v.iter().filter(|x| **x < flo || **x > fhi).take(MAX_MARKERS) {
             ctx.out.push(Prim::Circle { cx: c, cy: vy(*o), r: 2.5, fill: None, stroke: Some((s.color, 1.0)) });
         }
@@ -2052,20 +2094,20 @@ fn stock(ctx: &mut Ctx, chart: &Chart, data: &ChartData, area: Bx) {
     for j in 0..ncat {
         let c = plot.x + (((j as f32 + 0.5) - xc0 as f32) / xspan.max(1e-3)) * plot.w;
         if let (Some(h), Some(l)) = (get(high, j), get(low, j)) {
-            ctx.vline(c, vy(h), vy(l), STOCK, 1.25);
+            ctx.vline(c, vy(h), vy(l), ctx.colors.stock, 1.25);
         }
         match (get(open, j), get(close, j)) {
             (Some(o), Some(cl)) => {
                 let (yo, yc) = (vy(o), vy(cl));
                 let bw = (cw * 0.5).max(1.0);
-                let fill = if cl >= o { WHITE } else { STOCK };
-                ctx.rect(c - bw / 2.0, yo.min(yc), bw, (yo - yc).abs().max(0.75), fill, Some((STOCK, 1.0)));
+                let fill = if cl >= o { ctx.colors.light_text } else { ctx.colors.stock };
+                ctx.rect(c - bw / 2.0, yo.min(yc), bw, (yo - yc).abs().max(0.75), fill, Some((ctx.colors.stock, 1.0)));
             }
             (None, Some(cl)) => {
                 if high.is_some() {
-                    ctx.hline(c, c + tick, vy(cl), STOCK, 1.25);
+                    ctx.hline(c, c + tick, vy(cl), ctx.colors.stock, 1.25);
                 } else {
-                    ctx.out.push(Prim::Circle { cx: c, cy: vy(cl), r: 2.5, fill: Some(STOCK), stroke: None });
+                    ctx.out.push(Prim::Circle { cx: c, cy: vy(cl), r: 2.5, fill: Some(ctx.colors.stock), stroke: None });
                 }
             }
             _ => {}

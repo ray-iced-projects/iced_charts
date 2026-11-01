@@ -22,11 +22,13 @@ pub struct Chart {
     pub series: Vec<Series>,
     pub legend: LegendPos,
     pub data_labels: bool,
+    pub label_size: f32,
+    pub label_color: Option<Color>,
+    pub pie_inner: Option<f32>,
     pub gridlines: bool,
     pub style: u32,
     pub source: Option<String>,
     pub by_rows: bool,
-    pub label_size: f32,
     pub dark_luminance_threshold: f32,
 }
 
@@ -41,11 +43,13 @@ impl Default for Chart {
             legend: LegendPos::Bottom,
             gridlines: true,
             data_labels: false,
+            label_size: 12.0,
+            label_color: None,
+            pie_inner: None,
             style: 0,
             series: vec![],
             source: None,
             by_rows: false,
-            label_size: 12.0,
             width: 800.0,
             height: 800.0,
             dark_luminance_threshold: 0.25,
@@ -84,6 +88,16 @@ impl Chart {
         self
     }
 
+    pub fn label_color(mut self, color: Option<Color>) -> Self {
+        self.label_color = color;
+        self
+    }
+
+    pub fn pie_inner(mut self, inner: Option<f32>) -> Self {
+        self.pie_inner = inner;
+        self
+    }
+
     pub fn legend(mut self, position: LegendPos) -> Self {
         self.legend = position;
         self
@@ -91,6 +105,11 @@ impl Chart {
 
     pub fn gridlines(mut self, gl: bool) -> Self {
         self.gridlines = gl;
+        self
+    }
+
+    pub fn data_labels(mut self, show: bool) -> Self {
+        self.data_labels = show;
         self
     }
 
@@ -143,7 +162,8 @@ impl ChartText {
             content: String::new(),
             position: Point::ORIGIN,
             max_width: f32::INFINITY,
-            color: Color::BLACK,
+            // Alpha 0 means "no explicit override"; theme color will be used.
+            color: Color::from_rgba(0.0, 0.0, 0.0, 0.0),
             size: size,
             line_height: 1.2,
             font: Font::default(),
@@ -158,7 +178,7 @@ impl ChartText {
 
     pub fn to_iced(self, theme: &iced::Theme, kind: TextKind) -> canvas::Text {
         let bkg = theme.palette().background;
-        let color = match kind {
+        let theme_color = match kind {
             TextKind::Title => bkg.strongest.text,
             TextKind::XTitle => bkg.strongest.text,
             TextKind::YTitle => bkg.strongest.text,
@@ -166,6 +186,14 @@ impl ChartText {
             TextKind::YAxisLabels => bkg.strong.text,
             TextKind::Y2AxisLabels => bkg.strong.text,
             TextKind::Text => bkg.strong.text,
+        };
+
+        // Keep theme-driven colors by default, but allow explicit runtime overrides
+        // (used by sunburst/pie labels and any custom text color injection).
+        let color = if matches!(kind, TextKind::Text) && self.color.a > 0.0 {
+            self.color
+        } else {
+            theme_color
         };
 
         // For axis labels, use standard alignment based on axis type

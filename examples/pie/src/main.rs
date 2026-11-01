@@ -29,7 +29,7 @@ impl Default for Example {
                 ChartKind::Pie,
             )
             .title(title);
-
+        
         let theme = Theme::TokyoNight;
 
         let data = ChartData {
@@ -46,11 +46,11 @@ impl Default for Example {
             ],
             palette: vec![
                 chart.series_color(&theme, 0),
-                chart.series_color(&theme, 0),
-                chart.series_color(&theme, 0),
-                chart.series_color(&theme, 0),
-                chart.series_color(&theme, 0),
-                chart.series_color(&theme, 0),
+                chart.series_color(&theme, 1),
+                chart.series_color(&theme, 2),
+                chart.series_color(&theme, 3),
+                chart.series_color(&theme, 4),
+                chart.series_color(&theme, 5),
             ],
         };
         Example { 

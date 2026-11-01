@@ -23,7 +23,9 @@ impl Default for Example {
         title.content = "Organization Hierarchy".into();
 
         let chart = Chart::new(1, ChartKind::Sunburst)
-            .title(title);
+            .title(title)
+            .data_labels(true)
+            .label_size(14.0);
         
         let theme = Theme::TokyoNight;
 

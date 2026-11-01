@@ -25,7 +25,7 @@ use serde::{Deserialize, Serialize};
 
 pub use axis::{Scale, format_number, nice_scale};
 pub use render::render;
-pub use render::{render_scene, ChartView, PlotMeta};
+pub use render::{render_scene, render_scene_with_theme, ChartView, PlotMeta};
 pub use config::load_chart_from_yaml;
 
 use crate::model::features::ChartText;
@@ -473,13 +473,14 @@ impl canvas::Program<ChartMessage> for Grid<'_> {
                     .with_width(1.0),
             );
 
-            let (prims, _) = render_scene(
+            let (prims, _) = render_scene_with_theme(
                 &self.state.chart,
                 &self.state.data,
                 bounds.width,
                 bounds.height,
                 &ApproxMeasure,
                 self.state.view,
+                theme,
             );
             draw_prims(frame, &prims, theme);
         });
@@ -680,7 +681,6 @@ fn draw_prim(frame: &mut Frame, prim: &Prim, theme: &Theme) {
                     // For rotated text, need to reset position since we translated
                     text_obj.position = Point::new(0.0, 0.0);
                 }
-                
                 f.fill_text(text_obj);
             });
         },
