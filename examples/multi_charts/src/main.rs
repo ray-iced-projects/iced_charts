@@ -104,8 +104,21 @@ impl Example {
 
                     if menubar_name == "Theme" {
                         self.selected_theme = str_to_theme(&label);
-                        self.grid.request_redraw();
-                        Task::none()
+                        if !self.file_path.as_os_str().is_empty() && !self.file_content.is_empty() {
+                            match build_grid_from_yaml(&self.file_path, &self.file_content, &self.selected_theme) {
+                                Ok(mut grid) => {
+                                    let startup_config = StartupConfig::load();
+                                    apply_canvas_dimensions(&mut grid, startup_config.canvas_width, startup_config.canvas_height);
+                                    self.grid = grid;
+                                    self.grid.request_redraw();
+                                    Task::none()
+                                }
+                                Err(err) => Task::perform(show_error(err), |_| Message::DialogDismissed),
+                            }
+                        } else {
+                            self.grid.request_redraw();
+                            Task::none()
+                        }
                     } else if label == "Open File" {
                         self.is_loading = true;
                         let startup_config = StartupConfig::load();
