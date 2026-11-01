@@ -9,12 +9,24 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct StartupConfig {
     pub(crate) recent_files: Vec<String>,
+    #[serde(default = "default_window_width")]
+    pub(crate) window_width: u32,
+    #[serde(default = "default_window_height")]
+    pub(crate) window_height: u32,
     #[serde(default = "default_canvas_width")]
     pub(crate) canvas_width: f32,
     #[serde(default = "default_canvas_height")]
     pub(crate) canvas_height: f32,
     #[serde(default)]
     pub(crate) last_folder: Option<String>,
+}
+
+fn default_window_width() -> u32 {
+    1200
+}
+
+fn default_window_height() -> u32 {
+    900
 }
 
 fn default_canvas_width() -> f32 {
@@ -29,6 +41,8 @@ impl Default for StartupConfig {
     fn default() -> Self {
         Self {
             recent_files: vec![],
+            window_width: 1200,
+            window_height: 900,
             canvas_width: 800.0,
             canvas_height: 800.0,
             last_folder: None,

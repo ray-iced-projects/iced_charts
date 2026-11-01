@@ -465,12 +465,12 @@ impl canvas::Program<ChartMessage> for Grid<'_> {
             let border_color = theme.palette().background.weak.text;
             frame.stroke(
                 &Path::rectangle(
-                    Point::new(0.0, 0.0),
-                    Size::new(bounds.width, bounds.height),
+                    Point::new(0.0, 1.0),
+                    Size::new(bounds.width, bounds.height-1.0),
                 ),
                 Stroke::default()
                     .with_color(border_color)
-                    .with_width(1.0),
+                    .with_width(2.0),
             );
 
             let (prims, _) = render_scene_with_theme(

@@ -1,5 +1,6 @@
-
+window_width: 900
+window_height: 800
 canvas_width: 800.0
-canvas_height: 800.0
+canvas_height: 600.0
 last_folder: Null
 recent_files: Null

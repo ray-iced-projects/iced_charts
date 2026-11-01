@@ -19,9 +19,13 @@ mod yml_loader;
 
 
 pub fn main() -> iced::Result {
+    let startup_config = StartupConfig::load();
+    
     iced::application(Example::default, Example::update, Example::view)
         .title(Example::title)
         .theme(|ex: &Example| ex.theme())
+        .window_size((startup_config.window_width as f32, startup_config.window_height as f32))
+        .centered()
         .run()
 }
 
