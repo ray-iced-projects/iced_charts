@@ -736,24 +736,17 @@ mod tests {
     #[test]
     fn test_csv_hybrid_index_columns() {
         // Paired/wide CSV with duplicate headers: select columns by index.
-        use crate::config::load_chart_from_yaml;
+                use crate::config::load_chart_from_yaml;
+                let csv = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+                        .join("examples/multi_charts/data/scatter.csv")
+                        .to_string_lossy()
+                        .replace('\\', "/");
 
-        let yaml = r#"
-charts:
-  - id: 1
-    kind: Scatter
-    title: "CSV index"
-    data_source:
-      file: "examples/data/scatter.csv"
-    series:
-      - name: "Data 0"
-        x_column: 1
-        y_column: 2
-      - name: "Inline"
-        x_values: [0.0]
-        y_values: [0.0]
-"#;
-        let config = load_chart_from_yaml(yaml).expect("parse yaml");
+                let yaml = format!(
+                    "charts:\n  - id: 1\n    kind: Scatter\n    title: \"CSV index\"\n    data_source:\n      file: \"{}\"\n    series:\n      - name: \"Data 0\"\n        x_column: 1\n        y_column: 2\n      - name: \"Inline\"\n        x_values: [0.0]\n        y_values: [0.0]\n",
+                    csv
+                );
+        let config = load_chart_from_yaml(&yaml).expect("parse yaml");
         let data = config.charts[0]
             .build_data(&Theme::Dark)
             .expect("build data from csv");
@@ -770,20 +763,16 @@ charts:
     fn test_csv_hybrid_named_columns() {
         // Tidy CSV with unique headers: select columns by name + category column.
         use crate::config::load_chart_from_yaml;
+        let csv = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("examples/multi_charts/data/stock_PFE.csv")
+            .to_string_lossy()
+            .replace('\\', "/");
 
-        let yaml = r#"
-charts:
-  - id: 1
-    kind: Stock
-    title: "CSV named"
-    data_source:
-      file: "examples/data/PFE_ohlc.csv"
-      category_column: "Date"
-    series:
-      - name: "Close"
-        y_column: "Close"
-"#;
-        let config = load_chart_from_yaml(yaml).expect("parse yaml");
+                let yaml = format!(
+                        "charts:\n  - id: 1\n    kind: Stock\n    title: \"CSV named\"\n    data_source:\n      file: \"{}\"\n      category_column: \"Date\"\n    series:\n      - name: \"Close\"\n        y_column: \"Close\"\n",
+                        csv
+                );
+        let config = load_chart_from_yaml(&yaml).expect("parse yaml");
         let data = config.charts[0]
             .build_data(&Theme::Dark)
             .expect("build data from csv");
