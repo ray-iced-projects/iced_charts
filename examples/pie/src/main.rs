@@ -2,7 +2,6 @@ use iced::widget::{PickList, container, row};
 use iced::{Theme, Widget};
 use iced_charts::model::features::{ChartText, TextKind};
 use iced_charts::{ChartState, Chart, ChartData, ChartKind, SeriesData};
-use iced_charts::resolve::series_color;
 use iced_charts::model::theme_helpers::{theme_strings, str_to_theme};
 
 
@@ -42,17 +41,16 @@ impl Default for Example {
                         Some(28.0), Some(22.0), Some(18.0),
                         Some(15.0), Some(12.0), Some(5.0),
                     ],
-                    kind: ChartKind::Pie,
                     ..Default::default()
                 },
             ],
             palette: vec![
-                series_color(&theme, 0),
-                series_color(&theme, 0),
-                series_color(&theme, 0),
-                series_color(&theme, 0),
-                series_color(&theme, 0),
-                series_color(&theme, 0),
+                chart.series_color(&theme, 0),
+                chart.series_color(&theme, 0),
+                chart.series_color(&theme, 0),
+                chart.series_color(&theme, 0),
+                chart.series_color(&theme, 0),
+                chart.series_color(&theme, 0),
             ],
         };
         Example { 

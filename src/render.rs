@@ -170,7 +170,14 @@ pub enum Swatch {
 
 /// The kind a series is drawn as (per-series kinds only apply to combo charts).
 fn plot_kind(chart: &Chart, s: &SeriesData) -> ChartKind {
-    if chart.kind == ChartKind::Combo { if s.kind == ChartKind::Combo { ChartKind::Line } else { s.kind } } else { chart.kind }
+    if chart.kind == ChartKind::Combo {
+        match s.kind.unwrap_or(ChartKind::Line) {
+            ChartKind::Combo => ChartKind::Line,
+            k => k,
+        }
+    } else {
+        chart.kind
+    }
 }
 
 /// Colour of point `j` for charts that colour by point (pie, doughnut, treemap, sunburst).
@@ -1388,7 +1395,7 @@ fn scatter(ctx: &mut Ctx, chart: &Chart, data: &ChartData, area: Bx) {
                 ctx.out.push(Prim::Circle { cx: p[0], cy: p[1], r, fill: Some(fill), stroke: Some((WHITE, 0.75)) });
             }
         } else {
-            let lines = chart.kind == ChartKind::ScatterLines || s.kind == ChartKind::ScatterLines;
+            let lines = chart.kind == ChartKind::ScatterLines || s.kind == Some(ChartKind::ScatterLines);
             if lines {
                 draw_runs(ctx, &px, s.color, 2.0, s.smooth.then_some(plot));
             }

@@ -87,7 +87,6 @@ impl SeriesConfig {
     pub fn build_series(
         &self,
         index: usize,
-        kind: ChartKind,
         iced_theme: &Theme,
         table: Option<&CsvTable>,
         dark_luminance_threshold: f32,
@@ -125,7 +124,7 @@ impl SeriesConfig {
             x,
             values,
             sizes,
-            kind: self.kind.unwrap_or(kind),
+            kind: self.kind,
             color: series_color(iced_theme, index, dark_luminance_threshold),
             trendlines,
             ..Default::default()
@@ -207,7 +206,7 @@ impl ChartConfigItem {
 
         let mut series = Vec::with_capacity(self.series.len());
         for (idx, s) in self.series.iter().enumerate() {
-            series.push(s.build_series(idx, self.kind, iced_theme, table.as_ref(), self.dark_luminance_threshold)?);
+            series.push(s.build_series(idx, iced_theme, table.as_ref(), self.dark_luminance_threshold)?);
         }
 
         Ok(ChartData {

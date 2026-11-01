@@ -93,6 +93,10 @@ impl Chart {
         self.gridlines = gl;
         self
     }
+
+    pub fn series_color(&self, theme: &iced::Theme, index: usize) -> Color {
+        crate::resolve::series_color(theme, index, self.dark_luminance_threshold)
+    }
 }
 
 #[derive(Debug, Clone)]

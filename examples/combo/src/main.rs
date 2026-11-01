@@ -2,7 +2,6 @@ use iced::widget::{PickList, container, row};
 use iced::{Theme, Widget};
 use iced_charts::model::features::{ChartText, TextKind};
 use iced_charts::{ChartState, Chart, ChartData, ChartKind, SeriesData};
-use iced_charts::resolve::series_color;
 use iced_charts::model::theme_helpers::{theme_strings, str_to_theme};
 
 
@@ -53,8 +52,8 @@ impl Default for Example {
                         Some(450.0), Some(520.0), Some(480.0),
                         Some(600.0),
                     ],
-                    kind: ChartKind::ColumnClustered,
-                    color: series_color(&theme, 0),
+                    kind: Some(ChartKind::ColumnClustered),
+                    color: chart.series_color(&theme, 0),
                     ..Default::default()
                 },
                 SeriesData {
@@ -63,8 +62,8 @@ impl Default for Example {
                         Some(18.5), Some(22.0), Some(20.5),
                         Some(25.0),
                     ],
-                    kind: ChartKind::Line,
-                    color: series_color(&theme, 1),
+                    kind: Some(ChartKind::Line),
+                    color: chart.series_color(&theme, 1),
                     secondary: true,
                     ..Default::default()
                 },

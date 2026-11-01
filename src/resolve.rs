@@ -21,8 +21,9 @@ pub fn series_color(theme: &Theme, index: usize, dark_luminance_threshold: f32) 
     // Determine if background is dark using the configured threshold
     let is_dark = calculate_luminance(theme_color) < dark_luminance_threshold;
     
-    generate_series_color(theme_color, index, is_dark)
-
+    let color = generate_series_color(theme_color, index, is_dark);
+    if index == 0 {dbg!(&color);}
+    color
 }
 
 fn calculate_luminance(color: Color) -> f32 {

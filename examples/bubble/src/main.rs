@@ -3,7 +3,6 @@ use iced::widget::{PickList, container, row};
 use iced::{Theme, Widget};
 use iced_charts::model::features::{ChartText, TextKind};
 use iced_charts::{ChartState, Chart, ChartData, ChartKind, SeriesData};
-use iced_charts::resolve::series_color;
 use iced_charts::model::theme_helpers::{theme_strings, str_to_theme};
 
 
@@ -55,8 +54,7 @@ impl Default for Example {
                         Some(2.5), Some(5.2), Some(8.1),
                         Some(12.5), Some(18.3), Some(25.7),
                     ],
-                    kind: ChartKind::Bubble,
-                    color: series_color(&theme, 0),
+                    color: chart.series_color(&theme, 0),
                     sizes: Some(vec![
                         Some(1.5), Some(2.1), Some(2.8),
                         Some(3.5), Some(4.2), Some(5.1),
@@ -73,8 +71,7 @@ impl Default for Example {
                         Some(8.0), Some(12.5), Some(18.2),
                         Some(25.5), Some(32.1), Some(40.8),
                     ],
-                    kind: ChartKind::Bubble,
-                    color: series_color(&theme, 1),
+                    color: chart.series_color(&theme, 1),
                     sizes: Some(vec![
                         Some(2.2), Some(2.8), Some(3.5),
                         Some(4.1), Some(4.8), Some(5.5),

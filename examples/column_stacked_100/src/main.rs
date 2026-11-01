@@ -3,7 +3,6 @@ use iced::widget::{PickList, container, row};
 use iced::{Theme, Widget};
 use iced_charts::model::features::{ChartText, TextKind};
 use iced_charts::{ChartState, Chart, ChartData, ChartKind, SeriesData};
-use iced_charts::resolve::series_color;
 use iced_charts::model::theme_helpers::{theme_strings, str_to_theme};
 
 
@@ -54,8 +53,7 @@ impl Default for Example {
                         Some(35.0), Some(32.0), Some(28.0),
                         Some(25.0), Some(22.0),
                     ],
-                    kind: ChartKind::ColumnStacked100,
-                    color: series_color(&theme, 0),
+                    color: chart.series_color(&theme, 0),
                     ..Default::default()
                 },
                 SeriesData {
@@ -64,8 +62,7 @@ impl Default for Example {
                         Some(28.0), Some(30.0), Some(32.0),
                         Some(35.0), Some(38.0),
                     ],
-                    kind: ChartKind::ColumnStacked100,
-                    color: series_color(&theme, 1),
+                    color: chart.series_color(&theme, 1),
                     ..Default::default()
                 },
                 SeriesData {
@@ -74,8 +71,7 @@ impl Default for Example {
                         Some(20.0), Some(22.0), Some(25.0),
                         Some(28.0), Some(30.0),
                     ],
-                    kind: ChartKind::ColumnStacked100,
-                    color: series_color(&theme, 2),
+                    color: chart.series_color(&theme, 2),
                     ..Default::default()
                 },
                 SeriesData {
@@ -84,8 +80,7 @@ impl Default for Example {
                         Some(17.0), Some(16.0), Some(15.0),
                         Some(12.0), Some(10.0),
                     ],
-                    kind: ChartKind::ColumnStacked100,
-                    color: series_color(&theme, 3),
+                    color: chart.series_color(&theme, 3),
                     ..Default::default()
                 },
             ],

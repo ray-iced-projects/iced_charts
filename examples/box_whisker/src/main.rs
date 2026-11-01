@@ -3,7 +3,6 @@ use iced::widget::{container, row, PickList};
 use iced::{Theme, Widget};
 use iced_charts::model::features::{ChartText, TextKind};
 use iced_charts::{ChartState, Chart, ChartData, ChartKind, LegendPos, SeriesData};
-use iced_charts::resolve::series_color;
 use iced_charts::model::theme_helpers::{theme_strings, str_to_theme};
 
 
@@ -50,8 +49,7 @@ impl Default for Example {
                         Some(65.0), Some(72.0), Some(78.0),
                         Some(68.0),
                     ],
-                    kind: ChartKind::BoxWhisker,
-                    color: series_color(&theme, 0),
+                    color: chart.series_color(&theme, 0),
                     ..Default::default()
                 },
                 SeriesData {
@@ -60,8 +58,7 @@ impl Default for Example {
                         Some(72.0), Some(75.0), Some(82.0),
                         Some(76.0),
                     ],
-                    kind: ChartKind::BoxWhisker,
-                    color: series_color(&theme, 1),
+                    color: chart.series_color(&theme, 1),
                     ..Default::default()
                 },
             ],

@@ -170,8 +170,9 @@ pub struct SeriesData {
     pub sizes: Option<Vec<Option<f64>>>,
     #[serde(with = "color_serde::single_color")]
     pub color: iced::Color,
-    /// Per-series kind (combo charts).
-    pub kind: ChartKind,
+    /// Optional per-series kind override (used by combo/mixed charts).
+    /// When `None`, the chart-level `Chart.kind` is used.
+    pub kind: Option<ChartKind>,
     /// Plotted against the secondary (right) value axis.
     pub secondary: bool,
     /// Draw line segments as a smoothed (spline) curve.
@@ -190,7 +191,7 @@ impl Default for SeriesData {
             x: None,
             sizes: None,
             color: iced::Color::from_packed_rgba8(0x156082, 1.0),
-            kind: ChartKind::None,
+            kind: None,
             secondary: false,
             smooth: false,
             trendlines: vec![],

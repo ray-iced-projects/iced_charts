@@ -2,7 +2,6 @@ use iced::widget::{container, row, PickList};
 use iced::{Theme, Widget};
 use iced_charts::model::features::{ChartText, TextKind};
 use iced_charts::{ChartState, Chart, ChartData, ChartKind, SeriesData};
-use iced_charts::resolve::series_color;
 use iced_charts::model::theme_helpers::{theme_strings, str_to_theme};
 
 
@@ -48,8 +47,7 @@ impl Default for Example {
                         Some(150.0), Some(152.0), Some(149.0),
                         Some(154.0), Some(158.0),
                     ],
-                    kind: ChartKind::Stock,
-                    color: series_color(&theme, 0),
+                    color: chart.series_color(&theme, 0),
                     ..Default::default()
                 },
                 SeriesData {
@@ -58,8 +56,7 @@ impl Default for Example {
                         Some(156.0), Some(158.0), Some(155.0),
                         Some(162.0), Some(166.0),
                     ],
-                    kind: ChartKind::Stock,
-                    color: series_color(&theme, 1),
+                    color: chart.series_color(&theme, 1),
                     ..Default::default()
                 },
                 SeriesData {
@@ -68,8 +65,7 @@ impl Default for Example {
                         Some(148.0), Some(150.0), Some(147.0),
                         Some(151.0), Some(156.0),
                     ],
-                    kind: ChartKind::Stock,
-                    color: series_color(&theme, 2),
+                    color: chart.series_color(&theme, 2),
                     ..Default::default()
                 },
                 SeriesData {
@@ -78,8 +74,7 @@ impl Default for Example {
                         Some(155.0), Some(151.0), Some(152.0),
                         Some(159.0), Some(162.0),
                     ],
-                    kind: ChartKind::Stock,
-                    color: series_color(&theme, 3),
+                    color: chart.series_color(&theme, 3),
                     ..Default::default()
                 },
             ],

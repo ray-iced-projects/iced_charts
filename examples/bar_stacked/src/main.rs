@@ -2,7 +2,6 @@ use iced::widget::{PickList, container, row};
 use iced::{Theme, Widget};
 use iced_charts::model::features::{ChartText, TextKind};
 use iced_charts::{ChartState, Chart, ChartData, ChartKind, SeriesData};
-use iced_charts::resolve::series_color;
 use iced_charts::model::theme_helpers::{theme_strings, str_to_theme};
 
 
@@ -53,8 +52,7 @@ impl Default for Example {
                         Some(3200.0), Some(3500.0), Some(4100.0),
                         Some(4800.0), Some(5200.0), Some(5600.0),
                     ],
-                    kind: ChartKind::BarStacked,
-                    color: series_color(&theme, 0),
+                    color: chart.series_color(&theme, 0),
                     ..Default::default()
                 },
                 SeriesData {
@@ -63,8 +61,7 @@ impl Default for Example {
                         Some(1200.0), Some(1400.0), Some(1600.0),
                         Some(1800.0), Some(2000.0), Some(2200.0),
                     ],
-                    kind: ChartKind::BarStacked,
-                    color: series_color(&theme, 1),
+                    color: chart.series_color(&theme, 1),
                     ..Default::default()
                 },
                 SeriesData {
@@ -73,8 +70,7 @@ impl Default for Example {
                         Some(800.0), Some(950.0), Some(1100.0),
                         Some(1250.0), Some(1400.0), Some(1550.0),
                     ],
-                    kind: ChartKind::BarStacked,
-                    color: series_color(&theme, 2),
+                    color: chart.series_color(&theme, 2),
                     ..Default::default()
                 },
                 SeriesData {
@@ -83,8 +79,7 @@ impl Default for Example {
                         Some(400.0), Some(450.0), Some(500.0),
                         Some(550.0), Some(600.0), Some(650.0),
                     ],
-                    kind: ChartKind::BarStacked,
-                    color: series_color(&theme, 3),
+                    color: chart.series_color(&theme, 3),
                     ..Default::default()
                 },
             ],

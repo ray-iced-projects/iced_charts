@@ -4,7 +4,6 @@ use iced::{Theme, Widget};
 use iced_charts::model::features::{ChartText, TextKind};
 use iced_charts::model::theme_helpers::{str_to_theme, theme_strings};
 use iced_charts::{ChartState, Chart, ChartData, ChartKind, SeriesData};
-use iced_charts::resolve::series_color;
 
 
 pub fn main() -> iced::Result {
@@ -57,8 +56,7 @@ impl Default for Example {
                         Some(52.3), Some(61.5), Some(68.8),
                         Some(75.2), Some(82.1),
                     ],
-                    kind: ChartKind::ScatterLines,
-                    color: series_color(&theme, 0),
+                    color: chart.series_color(&theme, 0),
                     ..Default::default()
                 },
                 SeriesData {
@@ -73,8 +71,7 @@ impl Default for Example {
                         Some(56.8), Some(65.2), Some(72.5),
                         Some(79.8), Some(87.5),
                     ],
-                    kind: ChartKind::ScatterLines,
-                    color: series_color(&theme, 1),
+                    color: chart.series_color(&theme, 1),
                     ..Default::default()
                 },
             ],

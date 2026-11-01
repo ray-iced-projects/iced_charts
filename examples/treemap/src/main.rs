@@ -2,7 +2,6 @@ use iced::widget::{container, row, PickList};
 use iced::{Theme, Widget};
 use iced_charts::model::features::{ChartText, TextKind};
 use iced_charts::{ChartState, Chart, ChartData, ChartKind, SeriesData};
-use iced_charts::resolve::series_color;
 use iced_charts::model::theme_helpers::{theme_strings, str_to_theme};
 
 
@@ -40,18 +39,17 @@ impl Default for Example {
                         Some(125.0), Some(450.0), Some(850.0),
                         Some(200.0), Some(180.0), Some(300.0),
                     ],
-                    kind: ChartKind::Treemap,
-                    color: series_color(&theme, 0),
+                    color: chart.series_color(&theme, 0),
                     ..Default::default()
                 },
             ],
             palette: vec![
-                series_color(&theme, 1),
-                series_color(&theme, 2),
-                series_color(&theme, 3),
-                series_color(&theme, 4),
-                series_color(&theme, 5),
-                series_color(&theme, 6),
+                chart.series_color(&theme, 1),
+                chart.series_color(&theme, 2),
+                chart.series_color(&theme, 3),
+                chart.series_color(&theme, 4),
+                chart.series_color(&theme, 5),
+                chart.series_color(&theme, 6),
             ],
         };
         let selected_theme = Theme::TokyoNight;

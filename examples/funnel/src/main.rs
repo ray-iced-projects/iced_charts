@@ -2,7 +2,6 @@ use iced::widget::{PickList, container, row};
 use iced::{Theme, Widget};
 use iced_charts::model::features::{ChartText, TextKind};
 use iced_charts::{ChartState, Chart, ChartData, ChartKind, SeriesData};
-use iced_charts::resolve::series_color;
 use iced_charts::model::theme_helpers::{theme_strings, str_to_theme};
 
 
@@ -45,17 +44,16 @@ impl Default for Example {
                         Some(1000.0), Some(850.0), Some(620.0),
                         Some(380.0), Some(150.0),
                     ],
-                    kind: ChartKind::Funnel,
-                    color: series_color(&theme, 0),
+                    color: chart.series_color(&theme, 0),
                     ..Default::default()
                 },
             ],
             palette: vec![
-                series_color(&theme, 1),
-                series_color(&theme, 2),
-                series_color(&theme, 3),
-                series_color(&theme, 4),
-                series_color(&theme, 5),
+                chart.series_color(&theme, 1),
+                chart.series_color(&theme, 2),
+                chart.series_color(&theme, 3),
+                chart.series_color(&theme, 4),
+                chart.series_color(&theme, 5),
             ],
         };
         Example { 

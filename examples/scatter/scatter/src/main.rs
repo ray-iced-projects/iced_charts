@@ -2,7 +2,6 @@ use iced::widget::{PickList, container, row};
 use iced::{Theme, Widget};
 use iced_charts::model::features::{ChartText, TextKind};
 use iced_charts::{ChartState, Chart, ChartData, ChartKind, SeriesData};
-use iced_charts::resolve::series_color;
 use iced_charts::model::theme_helpers::{theme_strings, str_to_theme};
 
 
@@ -49,8 +48,7 @@ impl Default for Example {
                     name: "Quadrant I (+, +)".into(),
                     x: Some(vec![Some(5.0), Some(3.0), Some(7.0), Some(5.0), Some(6.0), Some(4.0)]),
                     values: vec![Some(5.0), Some(7.0), Some(2.0), Some(7.0), Some(4.0), Some(8.0)],
-                    kind: ChartKind::Scatter,
-                    color: series_color(&theme, 0),
+                    color: chart.series_color(&theme, 0),
                     ..Default::default()
                 },
                 // Quadrant II (Top Left): X < 0, Y > 0
@@ -58,8 +56,7 @@ impl Default for Example {
                     name: "Quadrant II (-, +)".into(),
                     x: Some(vec![Some(-5.0), Some(-4.0), Some(-7.0), Some(-5.0), Some(-4.0), Some(-7.0)]),
                     values: vec![Some(5.0), Some(3.0), Some(6.0), Some(4.0), Some(7.0), Some(5.0)],
-                    kind: ChartKind::Scatter,
-                    color: series_color(&theme, 1),
+                    color: chart.series_color(&theme, 1),
                     ..Default::default()
                 },
                 // Quadrant III (Bottom Left): X < 0, Y < 0
@@ -67,8 +64,7 @@ impl Default for Example {
                     name: "Quadrant III (-, -)".into(),
                     x: Some(vec![Some(-5.0), Some(-3.0), Some(-6.0), Some(-5.0), Some(-3.0), Some(-6.0)]),
                     values: vec![Some(-5.0), Some(-6.0), Some(-2.0), Some(-4.0), Some(-7.0), Some(-3.0)],
-                    kind: ChartKind::Scatter,
-                    color: series_color(&theme, 2),
+                    color: chart.series_color(&theme, 2),
                     ..Default::default()
                 },
                 // Quadrant IV (Bottom Right): X > 0, Y < 0
@@ -76,8 +72,7 @@ impl Default for Example {
                     name: "Quadrant IV (+, -)".into(),
                     x: Some(vec![Some(5.0), Some(4.0), Some(6.0), Some(5.0), Some(4.0), Some(6.0)]),
                     values: vec![Some(-5.0), Some(-4.0), Some(-7.0), Some(-6.0), Some(-3.0), Some(-5.0)],
-                    kind: ChartKind::Scatter,
-                    color: series_color(&theme, 3),
+                    color: chart.series_color(&theme, 3),
                     ..Default::default()
                 },
             ],

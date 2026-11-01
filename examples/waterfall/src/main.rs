@@ -2,7 +2,6 @@ use iced::widget::{container, row, PickList};
 use iced::{Theme, Widget};
 use iced_charts::model::features::{ChartText, TextKind};
 use iced_charts::{ChartState, Chart, ChartData, ChartKind, SeriesData};
-use iced_charts::resolve::series_color;
 use iced_charts::model::theme_helpers::{theme_strings, str_to_theme};
 
 
@@ -48,8 +47,7 @@ impl Default for Example {
                         Some(500.0), Some(-150.0), Some(-80.0),
                         Some(-60.0), Some(-40.0), Some(170.0),
                     ],
-                    kind: ChartKind::Waterfall,
-                    color: series_color(&theme, 0),
+                    color: chart.series_color(&theme, 0),
                     ..Default::default()
                 },
             ],

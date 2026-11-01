@@ -3,7 +3,6 @@ use iced::widget::{PickList, container, row};
 use iced::{Theme, Widget};
 use iced_charts::model::features::{ChartText, TextKind};
 use iced_charts::{Chart, ChartData, ChartKind, SeriesData, ChartState, Trendline, TrendlineData, TrendlineKind};
-use iced_charts::resolve::series_color;
 use iced_charts::model::theme_helpers::{theme_strings, str_to_theme};
 
 const _LABEL_SIZE: f32 = 10.0;
@@ -63,8 +62,7 @@ impl Default for Example {
                         Some(598.0), Some(623.0), Some(687.0), Some(634.0), Some(712.0),
                         Some(745.0), Some(698.0), Some(823.0), Some(756.0), Some(834.0),
                     ],
-                    kind: ChartKind::Scatter,
-                    color: series_color(&theme, 0),
+                    color: chart.series_color(&theme, 0),
                     trendlines: vec![
                         TrendlineData {
                             spec: Trendline {
