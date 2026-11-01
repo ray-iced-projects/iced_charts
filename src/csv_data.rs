@@ -1,4 +1,4 @@
-//! Lightweight CSV table reader for chart data sources.
+//! CSV table reader for chart data sources.
 //!
 //! Supports both *tidy* files (unique header names, e.g. OHLC) selected by name,
 //! and *paired/wide* files (duplicate header names, e.g. scatter x/y pairs)

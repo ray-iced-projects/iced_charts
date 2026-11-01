@@ -1,5 +1,4 @@
 
-
 use std::path::{Path, PathBuf};
 
 use iced::Theme;
@@ -9,17 +8,24 @@ use rfd::AsyncFileDialog;
 
 
 
-
-
 /// Pick a YAML config file and read its contents.
 pub async fn pick_yaml_file(last_folder: Option<PathBuf>) -> Result<(PathBuf, String), String> {
     let mut dialog = AsyncFileDialog::new()
         .add_filter("YAML config", &["yml", "yaml"])
         .set_title("Open chart config");
 
-    // Set initial directory if last folder is known
+    // Set initial directory if the stored folder is still valid.
+    // Some Linux dialog backends ignore or mishandle non-existent paths.
     if let Some(folder) = last_folder {
-        dialog = dialog.set_directory(folder);
+        let initial_dir = std::fs::canonicalize(&folder)
+            .ok()
+            .filter(|p| p.is_dir())
+            .or_else(|| folder.is_dir().then_some(folder))
+            .or_else(|| std::env::var_os("HOME").map(PathBuf::from));
+
+        if let Some(dir) = initial_dir {
+            dialog = dialog.set_directory(dir);
+        }
     }
 
     let handle = dialog
@@ -68,4 +74,3 @@ pub fn build_grid_from_yaml(path: &Path, content: &str, theme: &Theme) -> Result
     item.build_state(theme)
         .map_err(|e| format!("Failed to load data: {e}"))
 }
-
