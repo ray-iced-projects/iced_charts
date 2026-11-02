@@ -738,7 +738,7 @@ mod tests {
         // Paired/wide CSV with duplicate headers: select columns by index.
                 use crate::config::load_chart_from_yaml;
                 let csv = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-                        .join("examples/multi_charts/data/scatter.csv")
+                        .join("examples/selectable_charts/data/scatter.csv")
                         .to_string_lossy()
                         .replace('\\', "/");
 
@@ -764,7 +764,7 @@ mod tests {
         // Tidy CSV with unique headers: select columns by name + category column.
         use crate::config::load_chart_from_yaml;
         let csv = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-            .join("examples/multi_charts/data/stock_PFE.csv")
+            .join("examples/selectable_charts/data/stock_PFE.csv")
             .to_string_lossy()
             .replace('\\', "/");
 

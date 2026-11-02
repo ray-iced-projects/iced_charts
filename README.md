@@ -52,7 +52,7 @@ cargo run --example histogram
 cargo run --example line
 cargo run --example line_markers
 cargo run --example line_stacked
-cargo run --example multi_charts      # Charts loaded via a menu for file selection (native dialog, rfd crates)
+cargo run --example selectable_charts # Charts loaded via a menu for file selection (native dialog, rfd crates)
 cargo run --example pie
 cargo run --example radar
 cargo run --example scatter

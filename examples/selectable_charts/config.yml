@@ -1,4 +1,4 @@
-# Startup configuration for the multi_charts example.
+# Startup configuration for the selectable_charts example.
 #
 # NOTE: This file configures the app's startup/session state only.
 # It does NOT define the chart schema for a loaded chart YAML file.

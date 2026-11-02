@@ -197,7 +197,7 @@ impl Example {
 
     fn title(&self) -> String {
         if self.file_path.as_os_str().is_empty() {
-            "iced_charts — multi_charts".to_string()
+            "iced_charts — selectable_charts".to_string()
         } else {
             format!("iced_charts — {}", self.file_path.display())
         }

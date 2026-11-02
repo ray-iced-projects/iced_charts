@@ -24,4 +24,4 @@ rustc-ice-*.txt
 #.idea/
 
 # User-specific config files (should not be version controlled)
-examples/multi_charts/user_config.yml
+examples/selectable_charts/user_config.yml

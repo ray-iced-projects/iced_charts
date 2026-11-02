@@ -94,6 +94,10 @@ name = "line"
 path = "examples/line/src/main.rs"
 
 [[example]]
+name = "line_many"
+path = "examples/line_many/src/main.rs"
+
+[[example]]
 name = "line_markers"
 path = "examples/line_markers/src/main.rs"
 
@@ -106,8 +110,8 @@ name = "histogram"
 path = "examples/histogram/src/main.rs"
 
 [[example]]
-name = "charts"
-path = "examples/multi_charts/src/main.rs"
+name = "selectable_charts"
+path = "examples/selectable_charts/src/main.rs"
 
 [[example]]
 name = "pie"
