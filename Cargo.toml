@@ -74,6 +74,10 @@ name = "column_stacked_100"
 path = "examples/column_stacked_100/src/main.rs"
 
 [[example]]
+name = "column_pie"
+path = "examples/column_pie/src/main.rs"
+
+[[example]]
 name = "combo"
 path = "examples/combo/src/main.rs"
 

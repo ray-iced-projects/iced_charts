@@ -56,63 +56,111 @@ impl Default for Chart {
         }
     }
 }
-impl Chart {    
-    pub fn new(
-        id: usize, 
-        kind: ChartKind,
-    ) -> Self {
-            Self {
-                id,
-                kind,
-                ..Default::default()
-            }
+impl Chart {
+    /// Creates a new chart with the provided ID and chart kind.
+    pub fn new(id: usize, kind: ChartKind) -> Self {
+        Self {
+            id,
+            kind,
+            ..Default::default()
+        }
     }
 
+    /// Sets the chart title text.
     pub fn title(mut self, title: ChartText) -> Self {
         self.title = Some(title);
         self
     }
 
+    /// Sets the X-axis title text.
     pub fn x_title(mut self, title: ChartText) -> Self {
         self.x_title = Some(title);
         self
     }
 
+    /// Sets the Y-axis title text.
     pub fn y_title(mut self, title: ChartText) -> Self {
         self.y_title = Some(title);
         self
     }
 
+    /// Sets the font size used for labels and title text that are not otherwise customized.
     pub fn label_size(mut self, size: f32) -> Self {
         self.label_size = size;
         self
     }
 
+    /// Sets an explicit label color override for chart text.
+    ///
+    /// When `None`, the theme default is used.
     pub fn label_color(mut self, color: Option<Color>) -> Self {
         self.label_color = color;
         self
     }
 
+    /// Sets the inner radius for pie-like charts.
+    ///
+    /// `None` keeps the default inner radius behavior for the selected chart kind.
     pub fn pie_inner(mut self, inner: Option<f32>) -> Self {
         self.pie_inner = inner;
         self
     }
 
+    /// Sets the chart legend position.
     pub fn legend(mut self, position: LegendPos) -> Self {
         self.legend = position;
         self
     }
 
+    /// Enables or disables gridlines for the chart.
     pub fn gridlines(mut self, gl: bool) -> Self {
         self.gridlines = gl;
         self
     }
 
+    /// Enables or disables data labels on the rendered chart.
     pub fn data_labels(mut self, show: bool) -> Self {
         self.data_labels = show;
         self
     }
 
+    /// Sets the explicit canvas width for the chart.
+    pub fn width(mut self, width: f32) -> Self {
+        self.width = width;
+        self
+    }
+
+    /// Sets the explicit canvas height for the chart.
+    pub fn height(mut self, height: f32) -> Self {
+        self.height = height;
+        self
+    }
+
+    /// Sets the theme luminance threshold used to decide whether a dark or light palette should be chosen.
+    pub fn dark_luminance_threshold(mut self, threshold: f32) -> Self {
+        self.dark_luminance_threshold = threshold;
+        self
+    }
+
+    /// Sets the chart style identifier.
+    pub fn style(mut self, style: u32) -> Self {
+        self.style = style;
+        self
+    }
+
+    /// Sets an optional source string for the chart data.
+    pub fn source(mut self, source: Option<String>) -> Self {
+        self.source = source;
+        self
+    }
+
+    /// Sets whether the source data should be interpreted row-wise instead of column-wise.
+    pub fn by_rows(mut self, by_rows: bool) -> Self {
+        self.by_rows = by_rows;
+        self
+    }
+
+    /// Returns a series color generated for a given theme and series index.
     pub fn series_color(&self, theme: &iced::Theme, index: usize) -> Color {
         crate::resolve::series_color(theme, index, self.dark_luminance_threshold)
     }
