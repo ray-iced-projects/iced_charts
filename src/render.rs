@@ -1671,7 +1671,9 @@ fn pie(ctx: &mut Ctx, chart: &Chart, data: &ChartData, area: Bx, inner: f32, nam
         let sweep = (*v / total) as f32 * TAU;
         if sweep > 1e-4 {
             let fill = point_color(data, chart, j);
-            ctx.out.push(Prim::Wedge { cx, cy, r_outer: r, r_inner: ri, a0: a, a1: (a + sweep).min(TAU), fill, stroke: Some((ctx.colors.light_text, 1.5)) });
+            let mut stroke = on(fill, ctx.colors);
+            stroke.a *= 0.75;
+            ctx.out.push(Prim::Wedge { cx, cy, r_outer: r, r_inner: ri, a0: a, a1: (a + sweep).min(TAU), fill, stroke: Some((stroke, 1.25)) });
             if chart.data_labels && vals.len() <= MAX_LABELS {
                 let t = if names { cat_label(data, j) } else { f.format(s.values.get(j).copied().flatten().unwrap_or(0.0), None) };
                 let mid = a + sweep / 2.0;

@@ -39,17 +39,18 @@ fn generate_series_color(_bg_color: Color, index: usize, is_dark_bg: bool) -> Co
     let hue_degrees = hue * 360.0;
 
     // Interleave Lightness and Saturation so adjacent colors look completely different
+    // Slightly higher saturation keeps pie wedges more vivid without looking too pastel.
     let (saturation, lightness) = if is_dark_bg {
         match index % 3 {
-            0 => (0.95, 0.85), // Very light and vivid
-            1 => (0.75, 0.65), // Medium-light, slightly muted
-            _ => (0.90, 0.75), // Crisp pastel
+            0 => (1.0, 0.60),
+            1 => (1.0, 0.50),
+            _ => (1.0, 0.68),
         }
     } else {
         match index % 3 {
-            0 => (0.95, 0.25), // Deep, dark and vivid
-            1 => (0.75, 0.45), // Medium-dark, slightly muted
-            _ => (0.85, 0.35), // Solid earth tone
+            0 => (1.0, 0.36),
+            1 => (1.0, 0.46),
+            _ => (1.0, 0.30),
         }
     };
 
@@ -77,6 +78,4 @@ fn hsl_to_color(h: f32, s: f32, l: f32) -> iced::Color {
         (b + m).clamp(0.0, 1.0),
     )
 }
-
-
 
