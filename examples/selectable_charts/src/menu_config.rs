@@ -11,6 +11,7 @@ use crate::{MenuAction, start_up_configs::StartupConfig};
 pub enum MenuIntent {
     Theme(String),
     OpenFile,
+    OpenChart(String),
     RecentFile(PathBuf),
     Exit,
     NoOp,
@@ -46,7 +47,7 @@ impl Default for MenuState {
 
 pub fn define_menu_configs(menu_state: &MenuState) -> Vec<MenuConfig<'static, MenuAction>> {
     let size = menu_state.font_size;
-
+    
     vec![        
         MenuConfig {
             label: "File",
@@ -73,6 +74,15 @@ pub fn define_menu_configs(menu_state: &MenuState) -> Vec<MenuConfig<'static, Me
             ..Default::default()
         },
         MenuConfig {
+            label: "Charts",
+            width: 200.0,
+            items: chart_names()
+                .into_iter()
+                .map(|c| MenuItem::Item { label: Box::leak(c.into_boxed_str()), size: 10.0 })
+                .collect(),
+            ..Default::default()
+        },
+        MenuConfig {
             label: "Theme",
             width: 200.0,
             items: theme_strings()
@@ -88,6 +98,10 @@ pub fn define_menu_configs(menu_state: &MenuState) -> Vec<MenuConfig<'static, Me
 pub fn resolve_menu_intent(label: &str, menubar_name: Option<&str>, menu_state: &MenuState) -> MenuIntent {
     if menubar_name == Some("Theme") {
         return MenuIntent::Theme(label.to_string());
+    }
+
+    if menubar_name == Some("Charts") {
+        return MenuIntent::OpenChart(label.to_string());
     }
 
     match label {
@@ -107,4 +121,26 @@ fn separator() -> impl Fn() -> Element<'static, MenuMessage<MenuAction>> {
     || {
         iced::widget::rule::horizontal(2.0).boxed()
     }
+}
+
+fn chart_names() -> Vec<String> {
+    let mut names = std::fs::read_dir(Path::new(env!("CARGO_MANIFEST_DIR")).join("examples").join("selectable_charts").join("data"))
+        .into_iter()
+        .flatten()
+        .filter_map(|entry| {
+            let path = entry.ok()?.path();
+            let ext = path.extension()?.to_str()?;
+            if ext.eq_ignore_ascii_case("yml") {
+                Some(
+                    path.file_stem()?
+                        .to_str()?
+                        .to_string()
+                )
+            } else {
+                None
+            }
+        })
+        .collect::<Vec<_>>();
+    names.sort();
+    names
 }

@@ -131,6 +131,23 @@ impl Example {
                             let last_folder = startup_config.get_last_folder();
                             Task::perform(pick_yaml_file(last_folder), Message::FileLoaded)
                         }
+                        MenuIntent::OpenChart(chart_name) => {
+                            self.is_loading = true;
+                            let chart_path = Path::new(env!("CARGO_MANIFEST_DIR"))
+                                .join("examples")
+                                .join("selectable_charts")
+                                .join("data")
+                                .join(format!("{chart_name}.yml"));
+                            let path_buf = chart_path.clone();
+                            Task::perform(
+                                async move {
+                                    fs::read_to_string(&path_buf)
+                                        .map(|content| (path_buf, content))
+                                        .map_err(|e| e.to_string())
+                                },
+                                Message::FileLoaded
+                            )
+                        }
                         MenuIntent::RecentFile(path) => {
                             self.is_loading = true;
                             let path_buf = path.clone();
