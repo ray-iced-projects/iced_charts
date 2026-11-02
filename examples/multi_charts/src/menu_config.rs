@@ -2,10 +2,19 @@
 
 use iced_charts::model::theme_helpers::theme_strings;
 use iced_menu::{MenuConfig, MenuItem, MenuMessage};
-use std::{path::Path, rc::Rc};
+use std::{path::{Path, PathBuf}, rc::Rc};
 use iced::{Widget, Element};
 
 use crate::{MenuAction, start_up_configs::StartupConfig};
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum MenuIntent {
+    Theme(String),
+    OpenFile,
+    RecentFile(PathBuf),
+    Exit,
+    NoOp,
+}
 
 #[derive(Debug, Clone)]
 pub struct MenuState {
@@ -74,6 +83,24 @@ pub fn define_menu_configs(menu_state: &MenuState) -> Vec<MenuConfig<'static, Me
         }
         
     ]
+}
+
+pub fn resolve_menu_intent(label: &str, menubar_name: Option<&str>, menu_state: &MenuState) -> MenuIntent {
+    if menubar_name == Some("Theme") {
+        return MenuIntent::Theme(label.to_string());
+    }
+
+    match label {
+        "Open File" => MenuIntent::OpenFile,
+        "Exit" => MenuIntent::Exit,
+        _ => menu_state
+            .recent_files_display
+            .iter()
+            .position(|name| name == label)
+            .and_then(|index| menu_state.recent_files.get(index).cloned())
+            .map(|path| MenuIntent::RecentFile(PathBuf::from(path)))
+            .unwrap_or(MenuIntent::NoOp),
+    }
 }
 
 fn separator() -> impl Fn() -> Element<'static, MenuMessage<MenuAction>> {

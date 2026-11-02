@@ -22,11 +22,11 @@ pub struct StartupConfig {
 }
 
 fn default_window_width() -> u32 {
-    1200
+    900
 }
 
 fn default_window_height() -> u32 {
-    900
+    800
 }
 
 fn default_canvas_width() -> f32 {
@@ -34,17 +34,17 @@ fn default_canvas_width() -> f32 {
 }
 
 fn default_canvas_height() -> f32 {
-    800.0
+    600.0
 }
 
 impl Default for StartupConfig {
     fn default() -> Self {
         Self {
             recent_files: vec![],
-            window_width: 1200,
-            window_height: 900,
+            window_width: 900,
+            window_height: 800,
             canvas_width: 800.0,
-            canvas_height: 800.0,
+            canvas_height: 600.0,
             last_folder: None,
         }
     }

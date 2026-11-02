@@ -9,9 +9,9 @@ use iced_menu::{Menu, MenuMessage};
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use crate::menu_config::{MenuState, define_menu_configs};
+use crate::menu_config::{MenuIntent, MenuState, define_menu_configs, resolve_menu_intent};
 use crate::start_up_configs::StartupConfig;
-use crate::yml_loader::{build_grid_from_yaml, pick_yaml_file, show_error};
+use crate::yml_loader::{build_grid_from_yaml, pick_yaml_file, process_loaded_chart_file, show_error};
 
 mod menu_config;
 mod start_up_configs;
@@ -103,54 +103,48 @@ impl Example {
                         .and_then(|idx| self.menu.configs.get(idx)
                         .map(|c| c.label))
                         .unwrap_or("Unknown");
-                    
+
                     self.menu.clear_timers();
 
-                    if menubar_name == "Theme" {
-                        self.selected_theme = str_to_theme(&label);
-                        if !self.file_path.as_os_str().is_empty() && !self.file_content.is_empty() {
-                            match build_grid_from_yaml(&self.file_path, &self.file_content, &self.selected_theme) {
-                                Ok(mut grid) => {
-                                    let startup_config = StartupConfig::load();
-                                    apply_canvas_dimensions(&mut grid, startup_config.canvas_width, startup_config.canvas_height);
-                                    self.grid = grid;
-                                    self.grid.request_redraw();
-                                    Task::none()
+                    match resolve_menu_intent(&label, Some(menubar_name), &self.menu_state) {
+                        MenuIntent::Theme(theme_name) => {
+                            self.selected_theme = str_to_theme(&theme_name);
+                            if !self.file_path.as_os_str().is_empty() && !self.file_content.is_empty() {
+                                match build_grid_from_yaml(&self.file_path, &self.file_content, &self.selected_theme) {
+                                    Ok(mut grid) => {
+                                        let startup_config = StartupConfig::load();
+                                        apply_canvas_dimensions(&mut grid, startup_config.canvas_width, startup_config.canvas_height);
+                                        self.grid = grid;
+                                        self.grid.request_redraw();
+                                        Task::none()
+                                    }
+                                    Err(err) => Task::perform(show_error(err), |_| Message::DialogDismissed),
                                 }
-                                Err(err) => Task::perform(show_error(err), |_| Message::DialogDismissed),
-                            }
-                        } else {
-                            self.grid.request_redraw();
-                            Task::none()
-                        }
-                    } else if label == "Open File" {
-                        self.is_loading = true;
-                        let startup_config = StartupConfig::load();
-                        let last_folder = startup_config.get_last_folder();
-                        Task::perform(pick_yaml_file(last_folder), Message::FileLoaded)
-                    } else if label == "Exit" {
-                        window::latest().and_then(window::close)
-                    } else {
-                        // Check if this is a recent file by finding it in the display names
-                        if let Some(index) = self.menu_state.recent_files_display.iter().position(|name| name == &label) {
-                            if let Some(path_str) = self.menu_state.recent_files.get(index) {
-                                self.is_loading = true;
-                                let path = path_str.clone();
-                                Task::perform(
-                                    async move {
-                                        let path_buf = PathBuf::from(path.clone());
-                                        fs::read_to_string(&path_buf)
-                                            .map(|content| (path_buf, content))
-                                            .map_err(|e| e.to_string())
-                                    },
-                                    Message::FileLoaded
-                                )
                             } else {
+                                self.grid.request_redraw();
                                 Task::none()
                             }
-                        } else {
-                            Task::none()
                         }
+                        MenuIntent::OpenFile => {
+                            self.is_loading = true;
+                            let startup_config = StartupConfig::load();
+                            let last_folder = startup_config.get_last_folder();
+                            Task::perform(pick_yaml_file(last_folder), Message::FileLoaded)
+                        }
+                        MenuIntent::RecentFile(path) => {
+                            self.is_loading = true;
+                            let path_buf = path.clone();
+                            Task::perform(
+                                async move {
+                                    fs::read_to_string(&path_buf)
+                                        .map(|content| (path_buf, content))
+                                        .map_err(|e| e.to_string())
+                                },
+                                Message::FileLoaded
+                            )
+                        }
+                        MenuIntent::Exit => window::latest().and_then(window::close),
+                        MenuIntent::NoOp => Task::none(),
                     }
                 }
                 _ => self.menu.update(mm).map(Message::Menu)
@@ -159,46 +153,17 @@ impl Example {
                 self.is_loading = false;
                 match result {
                     Ok((path, content)) => {
-                        match build_grid_from_yaml(&path, &content, &self.selected_theme) {
-                            Ok(mut grid) => {
-                                grid.request_redraw();
-                                
-                                // Load config to get canvas dimensions
-                                let startup_config = StartupConfig::load();
-                                apply_canvas_dimensions(&mut grid, startup_config.canvas_width, startup_config.canvas_height);
-                                
-                                self.grid = grid;
-                                self.file_path = path.clone();
-                                self.file_content = content;
-                                
-                                // Add to recent files, update last folder, and save
-                                let mut updated_config = startup_config.clone();
-                                updated_config.add_recent_file(path.to_string_lossy().into_owned());
-                                updated_config.set_last_folder_from_path(&path);
-                                match updated_config.save() {
-                                    Ok(_) => println!("Config saved successfully. Last folder: {:?}", updated_config.last_folder),
-                                    Err(e) => eprintln!("Failed to save config: {}", e),
-                                }
-                                
-                                // Update menu state with both full paths and display names
-                                self.menu_state.recent_files = updated_config.recent_files.clone();
-                                self.menu_state.recent_files_display = updated_config.recent_files.iter()
-                                    .map(|path| {
-                                        std::path::Path::new(path)
-                                            .file_name()
-                                            .and_then(|name| name.to_str())
-                                            .unwrap_or(path)
-                                            .to_string()
-                                    })
-                                    .collect();
-                                let configs = define_menu_configs(&self.menu_state);
-                                self.menu.configs = configs;
-                                
+                        match process_loaded_chart_file(path, content, &self.selected_theme) {
+                            Ok(loaded) => {
+                                self.grid = loaded.grid;
+                                self.file_path = loaded.file_path;
+                                self.file_content = loaded.file_content;
+                                self.menu_state.recent_files = loaded.recent_files;
+                                self.menu_state.recent_files_display = loaded.recent_files_display;
+                                self.menu.configs = define_menu_configs(&self.menu_state);
                                 Task::none()
                             }
-                            Err(err) => {
-                                Task::perform(show_error(err), |_| Message::DialogDismissed)
-                            }
+                            Err(err) => Task::perform(show_error(err), |_| Message::DialogDismissed),
                         }
                     }
                     Err(err) if err == "cancelled" => Task::none(),

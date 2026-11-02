@@ -6,6 +6,8 @@ use iced_charts::{ChartState, load_chart_from_yaml};
 use native_dialog::{DialogBuilder, MessageLevel};
 use rfd::AsyncFileDialog;
 
+use crate::start_up_configs::StartupConfig;
+
 
 
 /// Pick a YAML config file and read its contents.
@@ -73,4 +75,56 @@ pub fn build_grid_from_yaml(path: &Path, content: &str, theme: &Theme) -> Result
         .ok_or_else(|| "Config contains no charts".to_string())?;
     item.build_state(theme)
         .map_err(|e| format!("Failed to load data: {e}"))
+}
+
+pub struct LoadedChartFile {
+    pub grid: ChartState,
+    pub file_path: PathBuf,
+    pub file_content: String,
+    pub recent_files: Vec<String>,
+    pub recent_files_display: Vec<String>,
+}
+
+fn apply_canvas_dimensions(chart_state: &mut ChartState, width: f32, height: f32) {
+    chart_state.set_width(width);
+    chart_state.set_height(height);
+}
+
+fn display_names(paths: &[String]) -> Vec<String> {
+    paths
+        .iter()
+        .map(|path| {
+            std::path::Path::new(path)
+                .file_name()
+                .and_then(|name| name.to_str())
+                .unwrap_or(path)
+                .to_string()
+        })
+        .collect()
+}
+
+pub fn process_loaded_chart_file(path: PathBuf, content: String, theme: &Theme) -> Result<LoadedChartFile, String> {
+    let mut grid = build_grid_from_yaml(&path, &content, theme)?;
+
+    let mut startup_config = StartupConfig::load();
+    apply_canvas_dimensions(&mut grid, startup_config.canvas_width, startup_config.canvas_height);
+    grid.request_redraw();
+
+    startup_config.add_recent_file(path.to_string_lossy().into_owned());
+    startup_config.set_last_folder_from_path(&path);
+
+    if let Err(e) = startup_config.save() {
+        eprintln!("Failed to save config: {}", e);
+    }
+
+    let recent_files = startup_config.recent_files.clone();
+    let recent_files_display = display_names(&recent_files);
+
+    Ok(LoadedChartFile {
+        grid,
+        file_path: path,
+        file_content: content,
+        recent_files,
+        recent_files_display,
+    })
 }
