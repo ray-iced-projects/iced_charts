@@ -1,7 +1,7 @@
 use iced::widget::{PickList, container, row};
 use iced::{Theme, Widget};
 use iced_charts::model::features::{ChartText, TextKind};
-use iced_charts::{ChartState, Chart, ChartData, ChartKind, SeriesData};
+use iced_charts::{Chart, ChartData, ChartKind, ChartState, LegendPos, SeriesData};
 use iced_charts::model::theme_helpers::{theme_strings, str_to_theme};
 
 
@@ -21,37 +21,32 @@ impl Default for Example {
     fn default() -> Self {
 
         let mut title = ChartText::new(TextKind::Title);
-        title.content = "Market Share Distribution".into();
+        title.content = "Quarterly Sales".into();
 
         let chart = 
             Chart::new(
                 1,
                 ChartKind::Pie,
             )
-            .title(title);
+            .title(title)
+            .legend(LegendPos::Right);
         
         let theme = Theme::TokyoNight;
 
+        let data = load_data();
+        let data_len = data.len();
+
         let data = ChartData {
-            categories: vec![],
+            categories: vec!["North".into(), "South".into(), "East".into(), 
+                            "West".into(), "Central".into(), "Online".into()],
             series: vec![
                 SeriesData {
                     name: "Market Share".into(),
-                    values: vec![
-                        Some(28.0), Some(22.0), Some(18.0),
-                        Some(15.0), Some(12.0), Some(5.0),
-                    ],
+                    values: data,
                     ..Default::default()
                 },
             ],
-            palette: vec![
-                chart.series_color(&theme, 0),
-                chart.series_color(&theme, 1),
-                chart.series_color(&theme, 2),
-                chart.series_color(&theme, 3),
-                chart.series_color(&theme, 4),
-                chart.series_color(&theme, 5),
-            ],
+            palette: (0..data_len).map(|d| chart.series_color(&theme, d)).collect(),
         };
         Example { 
             grid: ChartState::new(chart, data),
@@ -98,4 +93,14 @@ impl Example {
     fn theme(&self) -> Theme {
         self.selected_theme.clone()
     }
+}
+
+
+fn load_data() -> Vec<Option<f64>> {
+    let data = vec![
+        217_420.0, 164_650.0, 234_920.0, 271_960.0,
+        130_490.0, 362_100.0 ];
+    
+    data.iter().map(|d| Some(d/1381540.0)).collect()
+    
 }

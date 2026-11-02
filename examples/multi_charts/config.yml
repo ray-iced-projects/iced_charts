@@ -1,6 +1,30 @@
+# Startup configuration for the multi_charts example.
+#
+# NOTE: This file configures the app's startup/session state only.
+# It does NOT define the chart schema for a loaded chart YAML file.
+# Chart-specific options are defined in the chart YAML you open from the File menu.
+#
+# Supported fields:
+#   window_width:  Width of the app window in pixels. Default: 900
+#   window_height: Height of the app window in pixels. Default: 800
+#   canvas_width:  Width of the chart drawing canvas in pixels. Default: 800.0
+#   canvas_height: Height of the chart drawing canvas in pixels. Default: 600.0
+#   last_folder:   Last folder used for opening files. Default: null
+#   recent_files:  List of recently opened files, most recent first. Default: []
+#
+# Example custom config:
+# window_width: 1200
+# window_height: 900
+# canvas_width: 1000.0
+# canvas_height: 700.0
+# last_folder: "/home/you/projects"
+# recent_files:
+#   - "/home/you/projects/chart1.yml"
+#   - "/home/you/projects/chart2.yml"
+
 window_width: 900
 window_height: 800
 canvas_width: 800.0
 canvas_height: 600.0
-last_folder: Null
-recent_files: Null
+last_folder: null
+recent_files: []
