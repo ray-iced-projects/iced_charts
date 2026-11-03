@@ -12,6 +12,7 @@ pub enum MenuIntent {
     Theme(String),
     OpenFile,
     OpenChart(String),
+    DemoStart,
     RecentFile(PathBuf),
     Exit,
     NoOp,
@@ -80,6 +81,7 @@ pub fn define_menu_configs(menu_state: &MenuState) -> Vec<MenuConfig<'static, Me
                 .into_iter()
                 .map(|c| MenuItem::Item { label: Box::leak(c.into_boxed_str()), size })
                 .collect(),
+            scrollable_height: Some(300.0),
             ..Default::default()
         },
         MenuConfig {
@@ -89,6 +91,14 @@ pub fn define_menu_configs(menu_state: &MenuState) -> Vec<MenuConfig<'static, Me
                 .into_iter()
                 .map(|theme| MenuItem::Item { label: Box::leak(theme.into_boxed_str()), size })
                 .collect(),
+            ..Default::default()
+        },
+        MenuConfig {
+            label: "Demo",
+            width: 200.0,
+            items: vec![
+                MenuItem::Item { label: "Start", size }
+                ],
             ..Default::default()
         }
         
@@ -102,6 +112,13 @@ pub fn resolve_menu_intent(label: &str, menubar_name: Option<&str>, menu_state: 
 
     if menubar_name == Some("Charts") {
         return MenuIntent::OpenChart(label.to_string());
+    }
+
+    if menubar_name == Some("Demo") {
+        return match label {
+            "Start" => MenuIntent::DemoStart,
+            _ => MenuIntent::NoOp,
+        };
     }
 
     match label {

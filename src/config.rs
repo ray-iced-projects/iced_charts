@@ -39,6 +39,10 @@ pub struct ChartConfigItem {
     #[serde(default)]
     pub label_size: Option<f32>,
     #[serde(default)]
+    pub width: Option<f32>,
+    #[serde(default)]
+    pub height: Option<f32>,
+    #[serde(default)]
     pub pie_inner: Option<f32>,
     /// Luminance threshold (0.0-1.0) for determining if background is dark (default: 0.25).
     /// Values < threshold are considered dark; >= threshold are considered light.
@@ -179,6 +183,12 @@ impl ChartConfigItem {
         }
         if let Some(label_size) = self.label_size {
             chart = chart.label_size(label_size);
+        }
+        if let Some(width) = self.width {
+            chart = chart.width(width);
+        }
+        if let Some(height) = self.height {
+            chart = chart.height(height);
         }
         if let Some(pie_inner) = self.pie_inner {
             chart = chart.pie_inner(Some(pie_inner));

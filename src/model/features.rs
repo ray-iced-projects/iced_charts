@@ -12,6 +12,8 @@ pub struct Chart {
     pub id: usize,
     pub width: f32,
     pub height: f32,
+    #[serde(skip)]
+    pub has_explicit_size: bool,
     pub kind: ChartKind,
     #[serde(skip)]
     pub title: Option<ChartText>,
@@ -37,6 +39,7 @@ impl Default for Chart {
         Self {
             id: 0,
             kind: ChartKind::Line,
+            has_explicit_size: false,
             title: None,
             x_title: None,
             y_title: None,
@@ -127,12 +130,14 @@ impl Chart {
     /// Sets the explicit canvas width for the chart.
     pub fn width(mut self, width: f32) -> Self {
         self.width = width;
+        self.has_explicit_size = true;
         self
     }
 
     /// Sets the explicit canvas height for the chart.
     pub fn height(mut self, height: f32) -> Self {
         self.height = height;
+        self.has_explicit_size = true;
         self
     }
 

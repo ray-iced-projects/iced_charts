@@ -1,6 +1,6 @@
 use iced::Length::Fill;
-use iced::widget::{container, column};
-use iced::{Task, Theme, Widget, window};
+use iced::widget::{container, column, row};
+use iced::{Subscription, Task, Theme, Widget, window};
 use iced_charts::{Chart, ChartData, ChartKind, ChartMessage, ChartState};
 use iced_charts::model::theme_helpers::str_to_theme;
 
@@ -11,8 +11,10 @@ use std::path::{Path, PathBuf};
 
 use crate::menu_config::{MenuIntent, MenuState, define_menu_configs, resolve_menu_intent};
 use crate::start_up_configs::StartupConfig;
-use crate::yml_loader::{build_grid_from_yaml, pick_yaml_file, process_loaded_chart_file, show_error};
+use crate::demo::{DemoController, DemoEvent};
+use crate::yml_loader::{build_charts_from_yaml, pick_yaml_file, process_loaded_chart_file, show_error};
 
+mod demo;
 mod menu_config;
 mod start_up_configs;
 mod yml_loader;
@@ -26,15 +28,17 @@ pub fn main() -> iced::Result {
         .theme(|ex: &Example| ex.theme())
         .window_size((startup_config.window_width as f32, startup_config.window_height as f32))
         .centered()
+        .subscription(|state| state.subscription())
         .run()
 }
 
 
 struct Example {
-    grid: ChartState,
+    charts: Vec<ChartState>,
     selected_theme: Theme,
     menu: Menu<'static, MenuAction>,
     menu_state: MenuState,
+    demo: DemoController,
     file_path: PathBuf,
     file_content: String,
     is_loading: bool,
@@ -51,29 +55,32 @@ impl Default for Example {
         menu.configs = configs;
         menu.is_open = vec![false; len];
 
-        // Try to load the most recent file, or create an empty chart state
-        let (mut grid, file_path, file_content) = if let Some(recent_path) = startup_config.recent_files.first() {
+        // Try to load the most recent file, or create an empty chart state.
+        let (mut charts, file_path, file_content) = if let Some(recent_path) = startup_config.recent_files.first() {
             match fs::read_to_string(recent_path) {
                 Ok(content) => {
-                    match build_grid_from_yaml(Path::new(recent_path), &content, &Theme::TokyoNight) {
-                        Ok(grid) => (grid, PathBuf::from(recent_path), content),
-                        Err(_) => (create_empty_chart_state(), PathBuf::new(), String::new()),
+                    match build_charts_from_yaml(Path::new(recent_path), &content, &Theme::TokyoNight) {
+                        Ok(charts) => (charts, PathBuf::from(recent_path), content),
+                        Err(_) => (create_empty_charts(), PathBuf::new(), String::new()),
                     }
                 }
-                Err(_) => (create_empty_chart_state(), PathBuf::new(), String::new()),
+                Err(_) => (create_empty_charts(), PathBuf::new(), String::new()),
             }
         } else {
-            (create_empty_chart_state(), PathBuf::new(), String::new())
+            (create_empty_charts(), PathBuf::new(), String::new())
         };
 
         // Apply canvas dimensions from config
-        apply_canvas_dimensions(&mut grid, startup_config.canvas_width, startup_config.canvas_height);
+        for chart in &mut charts {
+            apply_canvas_dimensions(chart, startup_config.canvas_width, startup_config.canvas_height);
+        }
 
         Example {
-            grid,
+            charts,
             selected_theme: Theme::TokyoNight,
             menu,
             menu_state,
+            demo: DemoController::new(),
             file_path,
             file_content,
             is_loading: false,
@@ -85,8 +92,9 @@ impl Default for Example {
 enum Message {
     Menu(MenuMessage<MenuAction>),
     FileLoaded(Result<(PathBuf, String), String>),
+    Demo(DemoEvent),
     DialogDismissed,
-    Chart(ChartMessage),
+    Chart { index: usize, msg: ChartMessage },
 }
 
 #[derive(Debug, Clone)]
@@ -110,18 +118,22 @@ impl Example {
                         MenuIntent::Theme(theme_name) => {
                             self.selected_theme = str_to_theme(&theme_name);
                             if !self.file_path.as_os_str().is_empty() && !self.file_content.is_empty() {
-                                match build_grid_from_yaml(&self.file_path, &self.file_content, &self.selected_theme) {
-                                    Ok(mut grid) => {
+                                match build_charts_from_yaml(&self.file_path, &self.file_content, &self.selected_theme) {
+                                    Ok(mut charts) => {
                                         let startup_config = StartupConfig::load();
-                                        apply_canvas_dimensions(&mut grid, startup_config.canvas_width, startup_config.canvas_height);
-                                        self.grid = grid;
-                                        self.grid.request_redraw();
+                                        for chart in &mut charts {
+                                            apply_canvas_dimensions(chart, startup_config.canvas_width, startup_config.canvas_height);
+                                            chart.request_redraw();
+                                        }
+                                        self.charts = charts;
                                         Task::none()
                                     }
                                     Err(err) => Task::perform(show_error(err), |_| Message::DialogDismissed),
                                 }
                             } else {
-                                self.grid.request_redraw();
+                                for chart in &mut self.charts {
+                                    chart.request_redraw();
+                                }
                                 Task::none()
                             }
                         }
@@ -148,6 +160,22 @@ impl Example {
                                 Message::FileLoaded
                             )
                         }
+                        MenuIntent::DemoStart => {
+                            if let Some(path) = self.demo.start() {
+                                self.is_loading = true;
+                                let path_buf = path.clone();
+                                return Task::perform(
+                                    async move {
+                                        fs::read_to_string(&path_buf)
+                                            .map(|content| (path_buf, content))
+                                            .map_err(|e| e.to_string())
+                                    },
+                                    Message::FileLoaded,
+                                );
+                            }
+
+                            Task::none()
+                        }
                         MenuIntent::RecentFile(path) => {
                             self.is_loading = true;
                             let path_buf = path.clone();
@@ -166,13 +194,34 @@ impl Example {
                 }
                 _ => self.menu.update(mm).map(Message::Menu)
             },
+            Message::Demo(DemoEvent::Tick) => {
+                if let Some(next_path) = self.demo.advance() {
+                    self.is_loading = true;
+                    let path_buf = next_path.clone();
+                    return Task::perform(
+                        async move {
+                            fs::read_to_string(&path_buf)
+                                .map(|content| (path_buf, content))
+                                .map_err(|e| e.to_string())
+                        },
+                        Message::FileLoaded,
+                    );
+                }
+
+                Task::none()
+            }
             Message::FileLoaded(result) => {
                 self.is_loading = false;
                 match result {
                     Ok((path, content)) => {
                         match process_loaded_chart_file(path, content, &self.selected_theme) {
                             Ok(loaded) => {
-                                self.grid = loaded.grid;
+                                let startup_config = StartupConfig::load();
+                                self.charts = loaded.charts;
+                                for chart in &mut self.charts {
+                                    apply_canvas_dimensions(chart, startup_config.canvas_width, startup_config.canvas_height);
+                                    chart.request_redraw();
+                                }
                                 self.file_path = loaded.file_path;
                                 self.file_content = loaded.file_content;
                                 self.menu_state.recent_files = loaded.recent_files;
@@ -188,28 +237,43 @@ impl Example {
                 }
             }
             Message::DialogDismissed => Task::none(),
-            Message::Chart(chart_msg) => {
-                self.grid.apply(chart_msg);
+            Message::Chart { index, msg } => {
+                if let Some(chart) = self.charts.get_mut(index) {
+                    chart.apply(msg);
+                }
                 Task::none()
             }
         }
     }
 
     fn view(&self) -> impl Widget<Message> {
-
         let menu = self.menu.construct_menu().map(Message::Menu);
+
+        let charts = self.charts.iter().enumerate().map(|(index, chart)| {
+            container(chart.view().map(move |msg| Message::Chart { index, msg }))
+                .padding(10.0)
+                .boxed()
+        }).collect::<Vec<_>>();
 
         container(
             column(vec![
                 menu.boxed(),
-                container(self.grid.view().map(Message::Chart))
-                    .boxed()
+                row(charts).spacing(20.0).boxed(),
             ]).padding(20.0).boxed()
         ).center(Fill).boxed()
     }
 
     fn theme(&self) -> Theme {
         self.selected_theme.clone()
+    }
+
+    fn subscription(&self) -> Subscription<Message> {
+        if self.demo.is_running() {
+            iced::time::every(std::time::Duration::from_secs(1))
+                .map(|_| Message::Demo(DemoEvent::Tick))
+        } else {
+            Subscription::none()
+        }
     }
 
     fn title(&self) -> String {
@@ -229,8 +293,11 @@ fn create_empty_chart_state() -> ChartState {
     ChartState::new(chart, data)
 }
 
+fn create_empty_charts() -> Vec<ChartState> {
+    vec![create_empty_chart_state()]
+}
+
 /// Apply canvas dimensions from config to a ChartState
 fn apply_canvas_dimensions(chart_state: &mut ChartState, width: f32, height: f32) {
-    chart_state.set_width(width);
-    chart_state.set_height(height);
+    chart_state.apply_default_canvas_size(width, height);
 }

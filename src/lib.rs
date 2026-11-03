@@ -275,6 +275,17 @@ impl ChartState {
     pub fn set_height(&mut self, height: f32) {
         self.chart.height = height;
     }
+
+    pub fn canvas_size(&self) -> (f32, f32) {
+        (self.chart.width, self.chart.height)
+    }
+
+    pub fn apply_default_canvas_size(&mut self, width: f32, height: f32) {
+        if !self.chart.has_explicit_size {
+            self.chart.width = width;
+            self.chart.height = height;
+        }
+    }
 }
 
 /// Messages emitted by an interactive chart canvas (zoom and pan).

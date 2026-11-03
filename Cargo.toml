@@ -94,8 +94,8 @@ name = "line"
 path = "examples/line/src/main.rs"
 
 [[example]]
-name = "line_many"
-path = "examples/line_many/src/main.rs"
+name = "line_2_charts"
+path = "examples/line_2_charts/src/main.rs"
 
 [[example]]
 name = "line_markers"

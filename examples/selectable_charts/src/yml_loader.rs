@@ -52,8 +52,8 @@ pub async fn show_error(message: String) {
         .await;
 }
 
-/// Parse a YAML config, resolve its data source relative to the config file, and build the chart.
-pub fn build_grid_from_yaml(path: &Path, content: &str, theme: &Theme) -> Result<ChartState, String> {
+/// Parse a YAML config, resolve each data source relative to the config file, and build all charts.
+pub fn build_charts_from_yaml(path: &Path, content: &str, theme: &Theme) -> Result<Vec<ChartState>, String> {
     let mut config =
         load_chart_from_yaml(content).map_err(|e| format!("Failed to parse YAML: {e}"))?;
 
@@ -69,16 +69,28 @@ pub fn build_grid_from_yaml(path: &Path, content: &str, theme: &Theme) -> Result
         }
     }
 
-    let item = config
+    if config.charts.is_empty() {
+        return Err("Config contains no charts".to_string());
+    }
+
+    config
         .charts
-        .first()
-        .ok_or_else(|| "Config contains no charts".to_string())?;
-    item.build_state(theme)
-        .map_err(|e| format!("Failed to load data: {e}"))
+        .into_iter()
+        .map(|item| item.build_state(theme).map_err(|e| format!("Failed to load data: {e}")))
+        .collect()
+}
+
+/// Backward-compatible helper for callers that still want the first chart only.
+#[allow(dead_code)]
+pub fn build_grid_from_yaml(path: &Path, content: &str, theme: &Theme) -> Result<ChartState, String> {
+    build_charts_from_yaml(path, content, theme)?
+        .into_iter()
+        .next()
+        .ok_or_else(|| "Config contains no charts".to_string())
 }
 
 pub struct LoadedChartFile {
-    pub grid: ChartState,
+    pub charts: Vec<ChartState>,
     pub file_path: PathBuf,
     pub file_content: String,
     pub recent_files: Vec<String>,
@@ -86,8 +98,7 @@ pub struct LoadedChartFile {
 }
 
 fn apply_canvas_dimensions(chart_state: &mut ChartState, width: f32, height: f32) {
-    chart_state.set_width(width);
-    chart_state.set_height(height);
+    chart_state.apply_default_canvas_size(width, height);
 }
 
 fn display_names(paths: &[String]) -> Vec<String> {
@@ -104,11 +115,13 @@ fn display_names(paths: &[String]) -> Vec<String> {
 }
 
 pub fn process_loaded_chart_file(path: PathBuf, content: String, theme: &Theme) -> Result<LoadedChartFile, String> {
-    let mut grid = build_grid_from_yaml(&path, &content, theme)?;
+    let mut charts = build_charts_from_yaml(&path, &content, theme)?;
 
     let mut startup_config = StartupConfig::load();
-    apply_canvas_dimensions(&mut grid, startup_config.canvas_width, startup_config.canvas_height);
-    grid.request_redraw();
+    for chart in &mut charts {
+        apply_canvas_dimensions(chart, startup_config.canvas_width, startup_config.canvas_height);
+        chart.request_redraw();
+    }
 
     startup_config.add_recent_file(path.to_string_lossy().into_owned());
     startup_config.set_last_folder_from_path(&path);
@@ -121,10 +134,65 @@ pub fn process_loaded_chart_file(path: PathBuf, content: String, theme: &Theme) 
     let recent_files_display = display_names(&recent_files);
 
     Ok(LoadedChartFile {
-        grid,
+        charts,
         file_path: path,
         file_content: content,
         recent_files,
         recent_files_display,
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::build_charts_from_yaml;
+    use std::path::Path;
+    use iced::Theme;
+
+    #[test]
+    fn build_charts_from_yaml_supports_multiple_chart_configs() {
+        let yaml = r#"
+charts:
+  - id: 1
+    kind: Line
+    title: "First"
+    series:
+      - name: "A"
+        y_values: [1.0, 2.0]
+  - id: 2
+    kind: ColumnClustered
+    title: "Second"
+    series:
+      - name: "B"
+        y_values: [3.0, 4.0]
+"#;
+
+        let charts = build_charts_from_yaml(Path::new("/tmp/example.yml"), yaml, &Theme::TokyoNight)
+            .expect("multiple chart config should parse");
+
+        assert_eq!(charts.len(), 2);
+    }
+
+    #[test]
+    fn apply_canvas_dimensions_preserves_explicit_chart_size() {
+        let yaml = r#"
+charts:
+  - id: 1
+    kind: Line
+    title: "Sized"
+    width: 400.0
+    height: 300.0
+    series:
+      - name: "A"
+        y_values: [1.0, 2.0]
+"#;
+
+        let mut charts = build_charts_from_yaml(Path::new("/tmp/example.yml"), yaml, &Theme::TokyoNight)
+            .expect("chart config should parse");
+
+        super::apply_canvas_dimensions(&mut charts[0], 800.0, 600.0);
+
+        let (width, height) = charts[0].canvas_size();
+        assert_eq!(width, 400.0);
+        assert_eq!(height, 300.0);
+    }
 }
