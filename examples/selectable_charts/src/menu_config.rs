@@ -78,7 +78,7 @@ pub fn define_menu_configs(menu_state: &MenuState) -> Vec<MenuConfig<'static, Me
             width: 200.0,
             items: chart_names()
                 .into_iter()
-                .map(|c| MenuItem::Item { label: Box::leak(c.into_boxed_str()), size: 10.0 })
+                .map(|c| MenuItem::Item { label: Box::leak(c.into_boxed_str()), size })
                 .collect(),
             ..Default::default()
         },
