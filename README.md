@@ -21,6 +21,11 @@ About this time, the Craft projects were being published and I took a look at th
 
 In addition, this repo has the pan and zoom which GridCraft doesn't have.  GridCraft also uses egui and of course, this uses Iced.  My old repo has both pan/zoom and individual axis scrolling along with up to 4 left and right axes.  This repo only has one left and one right.  I'll update this later with axis scrolling and add at least two axes per side, hopefully.
 
+I use Claude to help with things, especially for debugging.  I find debugging a gui especially difficult with one having to visually find the issues and trace the code throught the canvas and the messaging system.  Claude is invaluable in this aspect.
+
+In the example selectable_charts, I use a iced_menu repo I made a few months ago, https://github.com/ray-iced-projects/iced_menu.
+
+This repo points to the current Master version of Iced, not the crates version.  I wanted to use the latest changes.
 
 ## Examples
 
